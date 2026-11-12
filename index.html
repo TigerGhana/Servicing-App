@@ -3,76 +3,127 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CLINCAL ENGINEERING UNIT Service Log </title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<meta name="color-scheme" content="light">
+<title>CEU Service Log Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-:root{--bg:#f2f6f6;--card:#fff;--ink:#14262b;--mute:#5b6e73;--line:#d5e0e1;--teal:#0e7c86;--amber:#c98a14;--red:#b3402f}
-@media(prefers-color-scheme:dark){:root{--bg:#0f1b1e;--card:#172629;--ink:#e6f0f1;--mute:#93a9ad;--line:#2a3f43;--teal:#3fb6c1;--amber:#e3a93a;--red:#e0705e}}
+:root{color-scheme:light;--navy:#0b2e4f;--gold:#f2b134;--sea:#12a3a0;--coral:#ef6a5b;--bg:#eaf0f6;--card:#fff;--ink:#0f1f33;--mute:#64748b;--line:#e2e8f0}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 'IBM Plex Sans',system-ui,sans-serif}
-header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:3px solid var(--teal);background:var(--card)}
-h1{font-size:18px;margin:0;font-weight:600}
-nav{display:flex;gap:4px}
-nav button,.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 14px;border-radius:6px;cursor:pointer}
-nav button.on,.btn.pri{background:var(--teal);border-color:var(--teal);color:#fff}
-.btn.del{color:var(--red)}
-main{padding:16px 20px;max-width:1280px;margin:auto}
-.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:16px}
-label{display:flex;flex-direction:column;font-size:12px;color:var(--mute);gap:3px}
-input,select,textarea{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:7px;width:100%}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
-.stat{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px}
-.stat b{display:block;font-size:28px;font-weight:600}
-.stat span{color:var(--mute);font-size:13px}
-.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px}
-.panel h2{font-size:14px;margin:0 0 8px;font-weight:600}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 'DM Sans',system-ui,sans-serif}
+h1,h2,b{font-family:'Sora',sans-serif}
+:focus-visible{outline:2px solid var(--sea);outline-offset:2px}
+.hide{display:none!important}
+#app{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+.side{background:var(--navy);color:#cfe0f1;padding:22px 14px;position:sticky;top:0;height:100vh}
+.brand{display:flex;gap:11px;align-items:center;padding:0 8px 26px}
+.brand svg{width:38px;height:38px;flex:none}
+.brand b{display:block;color:#fff;font-size:15px}
+.brand small{font-size:12px;opacity:.7}
+.side nav{display:grid;gap:4px}
+.side nav button{display:flex;gap:12px;align-items:center;background:none;border:0;color:inherit;font:inherit;padding:11px 12px;border-radius:12px;cursor:pointer;text-align:left}
+.side nav button:hover{background:rgba(255,255,255,.07)}
+.side nav button.on{background:var(--gold);color:var(--navy);font-weight:600}
+.side svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+main{padding:26px 30px 40px;min-width:0;max-width:1300px}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
+.head h1{margin:0;font-size:26px}
+.head p{margin:2px 0 0;color:var(--mute)}
+.btn{font:inherit;font-weight:500;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 15px;border-radius:10px;cursor:pointer}
+.btn:hover{border-color:var(--navy)}
+.btn.pri{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:var(--navy);font-weight:600}
+.btn.sm{padding:4px 10px;font-size:13px}
+.btn.del{color:#a8362a}
+.filters{background:var(--card);border-radius:16px;padding:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-bottom:16px}
+label{display:flex;flex-direction:column;font-size:12px;font-weight:500;color:var(--mute);gap:4px}
+input,select,textarea{font:inherit;color:var(--ink);background:#f6f9fc;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%}
+.hero{background:var(--navy);color:#fff;border-radius:22px;padding:26px 32px;display:grid;grid-template-columns:auto 1fr;gap:38px;align-items:center;margin-bottom:14px}
+.big{font:600 78px/1 'Sora',sans-serif;color:var(--gold)}
+.lbl{opacity:.8;margin-top:8px}
+.seg{display:flex;gap:2px;height:14px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,.14)}
+.seg i{display:block;height:100%}
+.leg{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:12px;font-size:13px}
+.leg i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));background:var(--card);border-radius:16px;margin-bottom:14px;overflow:hidden}
+.strip>div{padding:16px 20px;border-left:1px solid var(--line)}
+.strip>div:first-child{border-left:0}
+.strip b{display:block;font-size:30px;font-weight:600}
+.strip span{color:var(--mute);font-size:13px}
+.strip em{display:block;font-style:normal;font-size:12px;color:var(--sea)}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.panel{background:var(--card);border-radius:16px;padding:18px}
+.panel h2{font-size:15px;margin:0 0 12px;font-weight:600}
 .panel.wide{grid-column:1/-1}
 .tw{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:13px}
-th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
-td.wrap{white-space:normal;min-width:160px}
-th{color:var(--mute);font-weight:500}
-.tag{padding:2px 8px;border-radius:10px;background:var(--line);font-size:12px}
-.tag.Repaired,.tag.Dispatched{background:var(--teal);color:#fff}
-.tag.In\ repair,.tag.Received{background:var(--amber);color:#fff}
-.tag.Beyond\ repair{background:var(--red);color:#fff}
-.bar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
-dialog{border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);width:min(560px,94vw);padding:18px}
-dialog form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:10px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td.wrap{white-space:normal;min-width:170px}
+th{color:var(--mute);font-weight:500;font-size:12.5px}
+tbody tr:hover{background:#f6f9fc}
+.up{color:var(--sea)}.down{color:#a8362a}
+.tag{display:inline-block;padding:3px 11px;border-radius:99px;font-size:12px;font-weight:500}
+.Awaiting-repair{background:#fdf0d2;color:#8a5a00}
+.In-repair{background:#dcecfa;color:#1e5a94}
+.Repaired{background:#d3f3ef;color:#0b6b64}
+.Dispatched{background:var(--navy);color:#fff}
+.Beyond-repair{background:#fde0dc;color:#a8362a}
+.bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.empty{color:var(--mute);padding:28px;text-align:center}
+dialog{border:0;border-radius:20px;background:var(--card);color:var(--ink);width:min(580px,94vw);padding:22px;box-shadow:0 24px 60px rgba(11,46,79,.3)}
+dialog::backdrop{background:rgba(11,46,79,.5);backdrop-filter:blur(3px)}
+dialog form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 dialog .full{grid-column:1/-1}
-#login{max-width:340px;margin:12vh auto;display:grid;gap:10px;padding:20px}
-.hide{display:none!important}
-.empty{color:var(--mute);padding:20px;text-align:center}
+.loginwrap{min-height:100vh;background:var(--navy);display:grid;place-items:center;padding:20px}
+.logincard{background:var(--card);border-radius:22px;padding:28px;width:min(360px,100%);display:grid;gap:12px}
+.logincard h1{margin:0;font-size:22px}
+@media(max-width:860px){
+ #app{display:block}
+ .side{position:fixed;inset:auto 0 0 0;height:auto;padding:6px;z-index:20}
+ .brand{display:none}
+ .side nav{grid-auto-flow:column;grid-auto-columns:1fr}
+ .side nav button{flex-direction:column;gap:2px;font-size:12px;padding:7px;text-align:center}
+ main{padding:18px 14px 100px}
+ .hero{grid-template-columns:1fr;gap:18px;padding:22px}
+ .big{font-size:60px}
+ dialog form{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
-<div id="login" class="panel hide">
-  <h1>CEU Service Log</h1>
-  <label>Email<input id="em" type="email" autocomplete="username"></label>
-  <label>Password<input id="pw" type="password" autocomplete="current-password"></label>
-  <button class="btn pri" onclick="signIn()">Sign in</button>
-  <div id="lerr" style="color:var(--red)"></div>
+<div id="login" class="loginwrap hide">
+  <div class="logincard">
+    <h1>CEU Service Log</h1>
+    <label>Email<input id="em" type="email" autocomplete="username"></label>
+    <label>Password<input id="pw" type="password" autocomplete="current-password"></label>
+    <button class="btn gold" onclick="signIn()">Sign in</button>
+    <div id="lerr" style="color:#a8362a"></div>
+  </div>
 </div>
 
 <div id="app" class="hide">
-<header>
-  <h1>Clinical Engineering Unit: Service Log</h1>
+<aside class="side">
+  <div class="brand">
+    <svg viewBox="0 0 32 32"><rect width="32" height="32" rx="10" fill="#f2b134"/><path d="M16 8v16M8 16h16" stroke="#0b2e4f" stroke-width="4" stroke-linecap="round"/></svg>
+    <div><b>CEU Service Log</b><small>Western Region</small></div>
+  </div>
   <nav>
-    <button data-t="dash" class="on">Dashboard</button>
-    <button data-t="svc">Service log</button>
-    <button data-t="trn">Trainings</button>
-    <button onclick="sb.auth.signOut()">Sign out</button>
+    <button data-t="dash" class="on"><svg class="i" viewBox="0 0 24 24"><path d="M4 13h6V4H4zM14 20h6V4h-6zM4 20h6v-3H4z"/></svg>Overview</button>
+    <button data-t="svc"><svg class="i" viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/></svg>Service log</button>
+    <button data-t="trn"><svg class="i" viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5zM7 12v4c0 1 2.2 2.5 5 2.5s5-1.5 5-2.5v-4"/></svg>Trainings</button>
   </nav>
-</header>
+</aside>
 <main>
+  <div class="head">
+    <div><h1 id="ttl">Overview</h1><p id="sub"></p></div>
+    <button class="btn" onclick="sb.auth.signOut()">Sign out</button>
+  </div>
   <div class="filters">
     <label>Year<select id="f_y"></select></label>
     <label>District<select id="f_d"></select></label>
     <label>Facility type<select id="f_t"></select></label>
-    <label>Facility<input id="f_fac" placeholder="Search name"></label>
+    <label>Facility<select id="f_fac"></select></label>
     <label>From<input id="f_from" type="date"></label>
     <label>To<input id="f_to" type="date"></label>
     <label id="f_s_wrap">Status<select id="f_s"></select></label>
@@ -80,51 +131,57 @@ dialog .full{grid-column:1/-1}
   </div>
 
   <section id="dash">
-    <div class="cards" id="cards"></div>
+    <div class="hero" id="hero"></div>
+    <div class="strip" id="strip"></div>
     <div class="charts">
       <div class="panel"><h2>Equipment by district</h2><canvas id="c_dist"></canvas></div>
       <div class="panel"><h2>Equipment by facility type</h2><canvas id="c_type"></canvas></div>
-      <div class="panel wide"><h2>Year-on-year comparison: equipment received per month</h2><canvas id="c_yoy" height="110"></canvas></div>
+      <div class="panel wide"><h2>Year on year: equipment received each month</h2><canvas id="c_yoy" height="100"></canvas></div>
       <div class="panel wide"><h2>Yearly totals</h2><div class="tw" id="ytab"></div></div>
     </div>
   </section>
 
   <section id="svc" class="hide">
-    <div class="bar"><button class="btn pri" onclick="openForm('service_records')">Add equipment</button><button class="btn" onclick="csv('service_records')">Export CSV</button></div>
+    <div class="bar"><button class="btn gold" onclick="openForm('service_records')">Add equipment</button><button class="btn" onclick="csv('service_records')">Export CSV</button></div>
     <div class="panel tw" id="svc_t"></div>
   </section>
 
   <section id="trn" class="hide">
-    <div class="bar"><button class="btn pri" onclick="openForm('trainings')">Add training</button><button class="btn" onclick="csv('trainings')">Export CSV</button></div>
+    <div class="bar"><button class="btn gold" onclick="openForm('trainings')">Add training</button><button class="btn" onclick="csv('trainings')">Export CSV</button></div>
     <div class="panel tw" id="trn_t"></div>
   </section>
 </main>
 </div>
 
+<datalist id="fac_list"></datalist>
 <dialog id="dlg"><form id="frm" onsubmit="save(event)"></form></dialog>
 
 <script>
 // 1. Paste your Supabase project values (Project Settings > API)
 const SUPABASE_URL='https://gxudvqrreuywbtafndxb.supabase.co', SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4dWR2cXJyZXV5d2J0YWZuZHhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0NzkxMDYsImV4cCI6MjExMDA1NTEwNn0.Gl7LLXgUzlFEgKFRTT64iJmdlXK6r9FV8Tq9vb8OIGk';
 
-// 2. Edit these lists as needed
+// 2. Edit these lists as needed. Facilities are not listed here: they build themselves from the records you enter.
 const DISTRICTS=['Ahanta West','Effia-Kwesimintsim','Ellembelle','Jomoro','Mpohor','Nzema East','Prestea-Huni Valley','Sekondi-Takoradi','Shama','Tarkwa-Nsuaem','Wassa Amenfi Central','Wassa Amenfi East','Wassa Amenfi West','Wassa East'];
 const TYPES=['CHPS','Health Centre','Clinic','Polyclinic','District Hospital','Municipal Hospital','Regional Hospital','Other'];
-const STATUS=['Received','In repair','Repaired','Dispatched','Beyond repair'];
+const STATUS=['Awaiting repair','In repair','Repaired','Dispatched','Beyond repair'];
+const SC=['#f2b134','#6cb4ee','#2ec4b6','#ffffff','#ef6a5b'];
 
 const FIELDS={
- service_records:[['date_received','Date received','date',1],['facility','Facility','text',1],['facility_type','Facility type',TYPES],['district','District',DISTRICTS],['equipment','Equipment','text',1],['model','Model','text'],['serial_number','Serial number','text'],['status','Status',STATUS],['problem','Problem','area'],['part_replaced','Part replaced','text'],['date_dispatched','Date dispatched','date'],['comments','Comments','area']],
- trainings:[['training_date','Date','date',1],['facility','Facility','text'],['facility_type','Facility type',TYPES],['district','District',DISTRICTS],['equipment','Equipment trained on','text',1],['trainees','No. of trainees','number',1],['venue','Venue','text'],['remarks','Comments / remarks','area']]
+ service_records:[['date_received','Date received','date',1],['facility','Facility','fac',1],['facility_type','Facility type',TYPES],['district','District',DISTRICTS],['equipment','Equipment','text',1],['model','Model','text'],['serial_number','Serial number','text'],['status','Status',STATUS],['problem','Problem','area'],['part_replaced','Part replaced','text'],['date_dispatched','Date dispatched','date'],['comments','Comments','area']],
+ trainings:[['training_date','Date','date',1],['facility','Facility','fac'],['facility_type','Facility type',TYPES],['district','District',DISTRICTS],['equipment','Equipment trained on','text',1],['trainees','No. of trainees','number',1],['venue','Venue','text'],['remarks','Comments / remarks','area']]
 };
 const DATE={service_records:'date_received',trainings:'training_date'};
+const TITLES={dash:['Overview','The work of the unit, shaped by the filters above.'],svc:['Service log','Every item brought in for repair.'],trn:['Trainings','Training sessions delivered to facilities.']};
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const slug=s=>String(s||'').replace(/\s+/g,'-');
 const Y=d=>d?+d.slice(0,4):0;
 const data={service_records:[],trainings:[]};
 let charts={},editing=null,tab='dash';
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const COL=['#0e7c86','#c98a14','#6b5fb5','#b3402f','#4a8f3c','#a64d79','#3b6ea5','#8a8a2e'];
+const COL=['#0b2e4f','#f2b134','#12a3a0','#ef6a5b','#6b5fd6','#3b82c4','#7fb069','#c2549d','#8c6d46','#2f9e6f','#d96f2b','#5b7083','#b5a000','#9b59b6'];
+Chart.defaults.font.family="'DM Sans',sans-serif";Chart.defaults.color='#64748b';
 
 async function signIn(){const {error}=await sb.auth.signInWithPassword({email:$('em').value,password:$('pw').value});if(error)$('lerr').textContent=error.message}
 sb.auth.onAuthStateChange((_e,s)=>{$('login').classList.toggle('hide',!!s);$('app').classList.toggle('hide',!s);if(s)load()});
@@ -136,79 +193,97 @@ async function load(){
     if(r.error){alert('Could not load '+t+': '+r.error.message);return}
     data[t]=r.data;
   }
+  data.service_records.forEach(r=>{if(r.status==='Received')r.status='Awaiting repair'});
   fillFilters();render();
 }
-function opts(a,first){return '<option value="">'+first+'</option>'+a.map(x=>`<option>${esc(x)}</option>`).join('')}
+const opts=(a,first)=>'<option value="">'+first+'</option>'+a.map(x=>`<option>${esc(x)}</option>`).join('');
+function facs(){return [...new Set([...data.service_records,...data.trainings].map(r=>(r.facility||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b))}
+function known(n){n=(n||'').trim().toLowerCase();return n&&[...data.service_records,...data.trainings].find(r=>(r.facility||'').trim().toLowerCase()===n)}
 function fillFilters(){
   const ys=[...new Set([...data.service_records.map(r=>Y(r.date_received)),...data.trainings.map(r=>Y(r.training_date))].filter(Boolean))].sort((a,b)=>b-a);
-  const keep=$('f_y').value;
-  $('f_y').innerHTML=opts(ys,'All years');$('f_y').value=keep;
-  if(!$('f_d').options.length){$('f_d').innerHTML=opts(DISTRICTS,'All districts');$('f_t').innerHTML=opts(TYPES,'All types');$('f_s').innerHTML=opts(STATUS,'All statuses')}
+  const keep={y:$('f_y').value,f:$('f_fac').value};
+  $('f_y').innerHTML=opts(ys,'All years');$('f_y').value=keep.y;
+  $('f_fac').innerHTML=opts(facs(),'All facilities');$('f_fac').value=keep.f;
+  $('fac_list').innerHTML=facs().map(f=>`<option value="${esc(f)}">`).join('');
+  if(!$('f_d').options.length){$('f_d').innerHTML=opts(DISTRICTS,'All districts');$('f_t').innerHTML=opts(TYPES,'All types');$('f_s').innerHTML=opts(STATUS,'All (total received)')}
 }
-function F(){return{y:$('f_y').value,d:$('f_d').value,t:$('f_t').value,fac:$('f_fac').value.toLowerCase(),from:$('f_from').value,to:$('f_to').value,s:$('f_s').value}}
+function F(){return{y:$('f_y').value,d:$('f_d').value,t:$('f_t').value,fac:$('f_fac').value,from:$('f_from').value,to:$('f_to').value,s:$('f_s').value}}
 function pass(t,r,skipYear){
   const f=F(),dt=r[DATE[t]];
-  return (skipYear||!f.y||Y(dt)==f.y)&&(!f.d||r.district===f.d)&&(!f.t||r.facility_type===f.t)&&(!f.fac||(r.facility||'').toLowerCase().includes(f.fac))&&(!f.from||dt>=f.from)&&(!f.to||dt<=f.to)&&(t!=='service_records'||!f.s||r.status===f.s);
+  return (skipYear||!f.y||Y(dt)==f.y)&&(!f.d||r.district===f.d)&&(!f.t||r.facility_type===f.t)&&(!f.fac||(r.facility||'').trim()===f.fac)&&(!f.from||dt>=f.from)&&(!f.to||dt<=f.to)&&(t!=='service_records'||!f.s||r.status===f.s);
 }
 const rows=t=>data[t].filter(r=>pass(t,r));
 function resetF(){['f_y','f_d','f_t','f_fac','f_from','f_to','f_s'].forEach(i=>$(i).value='');render()}
-document.querySelectorAll('.filters select,.filters input').forEach(e=>e.addEventListener('input',render));
-document.querySelectorAll('nav button[data-t]').forEach(b=>b.onclick=()=>{
-  tab=b.dataset.t;document.querySelectorAll('nav button[data-t]').forEach(x=>x.classList.toggle('on',x===b));
+document.querySelectorAll('.filters select,.filters input').forEach(e=>e.addEventListener('change',render));
+document.querySelectorAll('.side nav button').forEach(b=>b.onclick=()=>{
+  tab=b.dataset.t;document.querySelectorAll('.side nav button').forEach(x=>x.classList.toggle('on',x===b));
   ['dash','svc','trn'].forEach(s=>$(s).classList.toggle('hide',s!==tab));
-  $('f_s_wrap').classList.toggle('hide',tab==='trn');render();
+  $('f_s_wrap').classList.toggle('hide',tab==='trn');
+  $('ttl').textContent=TITLES[tab][0];$('sub').textContent=TITLES[tab][1];render();
 });
+$('sub').textContent=TITLES.dash[1];
 
-function count(a,key){const m={};a.forEach(r=>{const k=r[key]||'Not specified';m[k]=(m[k]||0)+1});return m}
+const count=(a,key)=>{const m={};a.forEach(r=>{const k=r[key]||'Not specified';m[k]=(m[k]||0)+1});return m};
 function draw(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg)}
 
 function render(){
   const sr=rows('service_records'),tr=rows('trainings');
   if(tab==='dash'){
-    const rep=sr.filter(r=>['Repaired','Dispatched'].includes(r.status)).length;
-    const disp=sr.filter(r=>r.status==='Dispatched').length;
-    const pend=sr.filter(r=>['Received','In repair'].includes(r.status)).length;
-    const st=(n,l)=>`<div class="stat"><b>${n}</b><span>${l}</span></div>`;
-    $('cards').innerHTML=st(sr.length,'Received')+st(rep,'Repaired')+st(disp,'Dispatched')+st(pend,'Still in workshop')+st(tr.length,'Trainings')+st(tr.reduce((a,r)=>a+(+r.trainees||0),0),'Trainees');
-    const d=count(sr,'district');
-    draw('c_dist',{type:'doughnut',data:{labels:Object.keys(d),datasets:[{data:Object.values(d),backgroundColor:Object.keys(d).map((_,i)=>COL[i%COL.length]),borderWidth:1}]},options:{plugins:{legend:{position:'right',labels:{boxWidth:12}}}}});
+    const N=sr.length,f=F(),cnt=s=>sr.filter(r=>r.status===s).length;
+    const rep=cnt('Repaired')+cnt('Dispatched'),work=cnt('Awaiting repair')+cnt('In repair');
+    const segs=STATUS.map((s,i)=>[s,cnt(s),SC[i]]);
+    $('hero').innerHTML=`<div><div class="big">${N}</div><div class="lbl">equipment received${f.y?' in '+f.y:', all years'}</div></div>
+      <div><div class="seg">${segs.map(([s,n,c])=>n?`<i style="flex:${n};background:${c}"></i>`:'').join('')}</div>
+      <div class="leg">${segs.map(([s,n,c])=>`<span><i style="background:${c}"></i>${n} ${s.toLowerCase()}</span>`).join('')}</div></div>`;
+    const it=[[rep,'Repaired',N?Math.round(rep/N*100)+'% of received':''],[cnt('Dispatched'),'Dispatched',''],[work,'Still in the workshop',''],[tr.length,'Trainings',''],[tr.reduce((a,r)=>a+(+r.trainees||0),0),'Trainees','']];
+    $('strip').innerHTML=it.map(([n,l,s])=>`<div><b>${n}</b><span>${l}</span>${s?`<em>${s}</em>`:''}</div>`).join('');
+    const d=count(sr,'district'),narrow=innerWidth<700;
+    draw('c_dist',{type:'doughnut',data:{labels:Object.keys(d),datasets:[{data:Object.values(d),backgroundColor:Object.keys(d).map((_,i)=>COL[i%COL.length]),borderColor:'#fff',borderWidth:2}]},options:{cutout:'62%',plugins:{legend:{position:narrow?'bottom':'right',labels:{boxWidth:10,usePointStyle:true}}}}});
     const t=count(sr,'facility_type');
-    draw('c_type',{type:'bar',data:{labels:Object.keys(t),datasets:[{label:'Equipment',data:Object.values(t),backgroundColor:COL[0]}]},options:{indexAxis:'y',plugins:{legend:{display:false}}}});
+    draw('c_type',{type:'bar',data:{labels:Object.keys(t),datasets:[{label:'Equipment',data:Object.values(t),backgroundColor:'#12a3a0',borderRadius:6}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{precision:0}}}}});
     const all=data.service_records.filter(r=>pass('service_records',r,true));
     const yrs=[...new Set(all.map(r=>Y(r.date_received)))].sort();
-    draw('c_yoy',{type:'line',data:{labels:MON,datasets:yrs.map((y,i)=>({label:y,borderColor:COL[i%COL.length],backgroundColor:COL[i%COL.length],tension:.25,data:MON.map((_,m)=>all.filter(r=>Y(r.date_received)===y&&+r.date_received.slice(5,7)===m+1).length)}))},options:{scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
-    let h='<table><tr><th>Year</th><th>Received</th><th>Repaired</th><th>Dispatched</th><th>Trainings</th><th>Trainees</th></tr>';
-    const ty=[...new Set([...yrs,...data.trainings.filter(r=>pass('trainings',r,true)).map(r=>Y(r.training_date))])].sort((a,b)=>b-a);
-    ty.forEach(y=>{const a=all.filter(r=>Y(r.date_received)===y),b=data.trainings.filter(r=>pass('trainings',r,true)&&Y(r.training_date)===y);
-      h+=`<tr><td>${y}</td><td>${a.length}</td><td>${a.filter(r=>['Repaired','Dispatched'].includes(r.status)).length}</td><td>${a.filter(r=>r.status==='Dispatched').length}</td><td>${b.length}</td><td>${b.reduce((s,r)=>s+(+r.trainees||0),0)}</td></tr>`});
-    $('ytab').innerHTML=h+'</table>';
+    draw('c_yoy',{type:'line',data:{labels:MON,datasets:yrs.map((y,i)=>({label:y,borderColor:COL[i%COL.length],backgroundColor:COL[i%COL.length],borderWidth:3,pointRadius:3,tension:.3,data:MON.map((_,m)=>all.filter(r=>Y(r.date_received)===y&&+r.date_received.slice(5,7)===m+1).length)}))},options:{scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+    const by={};all.forEach(r=>{const y=Y(r.date_received);by[y]=(by[y]||0)+1});
+    const trn=data.trainings.filter(r=>pass('trainings',r,true));
+    const ty=[...new Set([...yrs,...trn.map(r=>Y(r.training_date))])].sort((a,b)=>b-a);
+    let h='<table><thead><tr><th>Year</th><th>Received</th><th>Change</th><th>Repaired</th><th>Dispatched</th><th>Trainings</th><th>Trainees</th></tr></thead><tbody>';
+    ty.forEach(y=>{const a=all.filter(r=>Y(r.date_received)===y),b=trn.filter(r=>Y(r.training_date)===y),p=by[y-1];
+      const c=p?Math.round((a.length-p)/p*100):null;
+      h+=`<tr><td><b>${y}</b></td><td>${a.length}</td><td class="${c>0?'up':'down'}">${c===null?'-':(c>0?'+':'')+c+'%'}</td><td>${a.filter(r=>['Repaired','Dispatched'].includes(r.status)).length}</td><td>${a.filter(r=>r.status==='Dispatched').length}</td><td>${b.length}</td><td>${b.reduce((s,r)=>s+(+r.trainees||0),0)}</td></tr>`});
+    $('ytab').innerHTML=h+'</tbody></table>';
   }
   if(tab==='svc')table('svc_t','service_records',sr,['date_received','facility','facility_type','district','equipment','model','serial_number','problem','part_replaced','status','date_dispatched','comments']);
   if(tab==='trn')table('trn_t','trainings',tr,['training_date','facility','facility_type','district','equipment','trainees','venue','remarks']);
 }
 function table(el,t,a,cols){
   const lab=Object.fromEntries(FIELDS[t].map(f=>[f[0],f[1]]));
-  if(!a.length){$(el).innerHTML='<div class="empty">No records match these filters. Use Add to create the first one.</div>';return}
-  $(el).innerHTML='<table><tr>'+cols.map(c=>`<th>${lab[c]}</th>`).join('')+'<th></th></tr>'+a.map(r=>'<tr>'+cols.map(c=>{
-    const v=c==='status'?`<span class="tag ${esc(r[c])}">${esc(r[c])}</span>`:esc(r[c]);
-    return `<td class="${['problem','comments','remarks'].includes(c)?'wrap':''}">${v}</td>`}).join('')+`<td><button class="btn" onclick="openForm('${t}','${r.id}')">Edit</button> <button class="btn del" onclick="del('${t}','${r.id}')">Delete</button></td></tr>`).join('')+'</table>';
+  if(!a.length){$(el).innerHTML='<div class="empty">No records match these filters. Use the Add button to create one.</div>';return}
+  $(el).innerHTML='<table><thead><tr>'+cols.map(c=>`<th>${lab[c]}</th>`).join('')+'<th></th></tr></thead><tbody>'+a.map(r=>'<tr>'+cols.map(c=>{
+    const v=c==='status'?`<span class="tag ${slug(r[c])}">${esc(r[c])}</span>`:esc(r[c]);
+    return `<td class="${['problem','comments','remarks'].includes(c)?'wrap':''}">${v}</td>`}).join('')+`<td><button class="btn sm" onclick="openForm('${t}','${r.id}')">Edit</button> <button class="btn sm del" onclick="del('${t}','${r.id}')">Delete</button></td></tr>`).join('')+'</tbody></table>';
 }
 function openForm(t,id){
   editing={t,id};const r=id?data[t].find(x=>x.id===id):{};
   $('frm').innerHTML=`<h2 class="full" style="margin:0">${id?'Edit':'Add'} ${t==='trainings'?'training':'equipment'}</h2>`+FIELDS[t].map(([k,l,ty,req])=>{
-    const v=r[k]??(k==='status'?'Received':'');const full=ty==='area'?'full':'';
-    const inp=Array.isArray(ty)?`<select name="${k}" ${req?'required':''}><option value=""></option>${ty.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select>`
-      :ty==='area'?`<textarea name="${k}" rows="2">${esc(v)}</textarea>`:`<input name="${k}" type="${ty}" value="${esc(v)}" ${ty==='number'?'min="0"':''} ${req?'required':''}>`;
+    const v=r[k]??(k==='status'?'Awaiting repair':'');const full=ty==='area'?'full':'';
+    const inp=Array.isArray(ty)?`<select name="${k}"><option value=""></option>${ty.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select>`
+      :ty==='area'?`<textarea name="${k}" rows="2">${esc(v)}</textarea>`
+      :ty==='fac'?`<input name="${k}" list="fac_list" autocomplete="off" placeholder="Pick from the list or type a new one" value="${esc(v)}" ${req?'required':''}>`
+      :`<input name="${k}" type="${ty}" value="${esc(v)}" ${ty==='number'?'min="0"':''} ${req?'required':''}>`;
     return `<label class="${full}">${l}${req?' *':''}${inp}</label>`}).join('')+
     '<div class="full bar"><button class="btn pri">Save</button><button type="button" class="btn" onclick="$(\'dlg\').close()">Cancel</button></div>';
+  const el=$('frm').elements;
+  el.facility.addEventListener('change',()=>{const m=known(el.facility.value);if(!m)return;el.facility.value=m.facility.trim();if(!el.facility_type.value)el.facility_type.value=m.facility_type||'';if(!el.district.value)el.district.value=m.district||''});
   $('dlg').showModal();
 }
 async function save(e){
   e.preventDefault();const {t,id}=editing,body={};
   new FormData($('frm')).forEach((v,k)=>body[k]=v===''?null:v);
   if(body.trainees!=null)body.trainees=+body.trainees;
-  const q=id?sb.from(t).update(body).eq('id',id):sb.from(t).insert(body);
-  const {error}=await q;if(error){alert('Could not save: '+error.message);return}
+  if(body.facility){const m=known(body.facility);body.facility=m?m.facility.trim():body.facility.trim()}
+  const {error}=await (id?sb.from(t).update(body).eq('id',id):sb.from(t).insert(body));
+  if(error){alert('Could not save: '+error.message);return}
   $('dlg').close();await load();
 }
 async function del(t,id){
