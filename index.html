@@ -4,11 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>Clinical Engineering Unit</title>
+<title>CEU Service Log</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <style>
 :root{color-scheme:light;--navy:#0b2e4f;--gold:#f2b134;--sea:#12a3a0;--coral:#ef6a5b;--bg:#eaf0f6;--card:#fff;--ink:#0f1f33;--mute:#64748b;--line:#e2e8f0}
 *{box-sizing:border-box}
@@ -100,7 +102,7 @@ dialog .full{grid-column:1/-1}
 <body>
 <div id="login" class="loginwrap hide">
   <div class="logincard">
-    <h1>CEU Service Logger</h1>
+    <h1>CEU Service Log</h1>
     <label>Email<input id="em" type="email" autocomplete="username"></label>
     <label>Password<input id="pw" type="password" autocomplete="current-password"></label>
     <button class="btn gold" onclick="signIn()">Sign in</button>
@@ -112,18 +114,19 @@ dialog .full{grid-column:1/-1}
 <aside class="side">
   <div class="brand">
     <svg viewBox="0 0 32 32"><rect width="32" height="32" rx="10" fill="#f2b134"/><path d="M16 8v16M8 16h16" stroke="#0b2e4f" stroke-width="4" stroke-linecap="round"/></svg>
-    <div><b>Clinical Engineering Unit</b><small>Western Region</small></div>
+    <div><b>CEU Equipment</b><small>Western Region</small></div>
   </div>
   <nav>
-    <button data-t="dash" class="on"><svg class="i" viewBox="0 0 24 24"><path d="M4 13h6V4H4zM14 20h6V4h-6zM4 20h6v-3H4z"/></svg>Overview</button>
-    <button data-t="svc"><svg class="i" viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/></svg>Equipment Service Log</button>
-    <button data-t="trn"><svg class="i" viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5zM7 12v4c0 1 2.2 2.5 5 2.5s5-1.5 5-2.5v-4"/></svg>Trainings</button>
+    <button data-t="dash" class="on"><svg class="i" viewBox="0 0 24 24"><path d="M4 13h6V4H4zM14 20h6V4h-6zM4 20h6v-3H4z"/></svg>Summary</button>
+    <button data-t="svc"><svg class="i" viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/></svg>Servicing</button>
+    <button data-t="ppm"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>PPM</button>
+    <button data-t="trn"><svg class="i" viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5zM7 12v4c0 1 2.2 2.5 5 2.5s5-1.5 5-2.5v-4"/></svg> User Trainings</button>
   </nav>
 </aside>
 <main>
   <div class="head">
-    <div><h1 id="ttl">Summary Dashboard</h1><p id="sub"></p></div>
-    <button class="btn" onclick="sb.auth.signOut()">Exit</button>
+    <div><h1 id="ttl">Overview</h1><p id="sub"></p></div>
+    <button class="btn" onclick="sb.auth.signOut()">Sign out</button>
   </div>
   <div id="err" class="alert hide"></div>
   <div class="filters">
@@ -134,6 +137,7 @@ dialog .full{grid-column:1/-1}
     <label>From<input id="f_from" type="date"></label>
     <label>To<input id="f_to" type="date"></label>
     <label id="f_s_wrap">Status<select id="f_s"></select></label>
+    <label id="f_q_wrap" class="hide">Quarter<select id="f_q"></select></label>
     <label>&nbsp;<button class="btn" onclick="resetF()">Clear filters</button></label>
   </div>
 
@@ -154,8 +158,12 @@ dialog .full{grid-column:1/-1}
   </section>
 
   <section id="trn" class="hide">
-    <div class="bar"><button class="btn gold" onclick="openForm('trainings')">Add User Training</button><button class="btn" onclick="csv('trainings')">Export CSV</button></div>
+    <div class="bar"><button class="btn gold" onclick="openForm('trainings')">Add training</button><button class="btn" onclick="csv('trainings')">Export CSV</button></div>
     <div class="panel tw" id="trn_t"></div>
+  </section>
+  <section id="ppm" class="hide">
+    <div class="bar"><button class="btn gold" onclick="openForm('ppm_records')">Add PPM</button><button class="btn" onclick="$('xlp').click()">Import from Excel</button><button class="btn" onclick="downloadTemplate('ppm_records')">Download template</button><button class="btn" onclick="exportPDF()">Export as PDF</button><input type="file" id="xlp" accept=".xlsx" class="hide" onchange="pickFile(event,'ppm_records')"></div>
+    <div class="panel tw" id="ppm_t"></div>
   </section>
 </main>
 </div>
@@ -178,14 +186,16 @@ const FIELDS={
  service_records:[['date_received','Date received','date',1],['facility','Facility','fac',1],['facility_type','Facility type',TYPES],['district','District',DISTRICTS],['equipment','Equipment','text',1],['manufacturer','Manufacturer','text'],['model','Model','text'],['serial_number','Serial number','text'],['status','Status',STATUS],['problem','Problem','area'],['part_replaced','Part replaced','text'],['date_dispatched','Date dispatched','date'],['comments','Comments','area']],
  trainings:[['training_date','Date','date',1],['facility','Facility','fac'],['facility_type','Facility type',TYPES],['district','District',DISTRICTS],['equipment','Equipment trained on','text',1],['trainees','No. of trainees','number',1],['venue','Venue','text'],['remarks','Comments / remarks','area']]
 };
-const DATE={service_records:'date_received',trainings:'training_date'};
-const TITLES={dash:['Overview','The work done by the unit, summarized below.'],svc:['Equipment Log','Details of equipment brought to the Unit for repair.'],trn:['Trainings','Training sessions delivered to facilities.']};
+const QUARTERS=['First quarter','Second quarter','Third quarter','Fourth quarter'];
+FIELDS.ppm_records=[['ppm_date','Date of PPM','date',1],['quarter','Quarter',QUARTERS],['facility','Facility name','fac',1],['facility_type','Facility type',TYPES],['district','District',DISTRICTS],['equipment','Equipment','text',1],['manufacturer','Manufacturer','text'],['serial_number','Serial number','text'],['work_done','Work done','area'],['next_service_date','Next servicing date','date'],['remarks','Remarks','area']];
+const DATE={service_records:'date_received',trainings:'training_date',ppm_records:'ppm_date'};
+const TITLES={dash:['Summary','The work done by the unit, summarized below.'],svc:['Coorective Maintenance',' Details of equipment brought in for repair.'],trn:['User Trainings','Training sessions delivered to facilities.'],ppm:['Preventive Maintenance','Planned preventive maintenance (PPM) visits and upcoming servicing dates.']};
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const slug=s=>String(s||'').replace(/\s+/g,'-');
 const Y=d=>d?+d.slice(0,4):0;
-const data={service_records:[],trainings:[]};
+const data={service_records:[],trainings:[],ppm_records:[]};
 let charts={},editing=null,tab='dash',VIS={m:{},sz:{}};
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const COL=['#0b2e4f','#f2b134','#12a3a0','#ef6a5b','#6b5fd6','#3b82c4','#7fb069','#c2549d','#8c6d46','#2f9e6f','#d96f2b','#5b7083','#b5a000','#9b59b6'];
@@ -207,28 +217,28 @@ async function load(){
   fillFilters();render();
 }
 const opts=(a,first)=>'<option value="">'+first+'</option>'+a.map(x=>`<option>${esc(x)}</option>`).join('');
-function facs(){return [...new Set([...data.service_records,...data.trainings].map(r=>(r.facility||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b))}
-function known(n){n=(n||'').trim().toLowerCase();return n&&[...data.service_records,...data.trainings].find(r=>(r.facility||'').trim().toLowerCase()===n)}
+function facs(){return [...new Set([...data.service_records,...data.trainings,...data.ppm_records].map(r=>(r.facility||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b))}
+function known(n){n=(n||'').trim().toLowerCase();return n&&[...data.service_records,...data.trainings,...data.ppm_records].find(r=>(r.facility||'').trim().toLowerCase()===n)}
 function fillFilters(){
-  const ys=[...new Set([...data.service_records.map(r=>Y(r.date_received)),...data.trainings.map(r=>Y(r.training_date))].filter(Boolean))].sort((a,b)=>b-a);
+  const ys=[...new Set([...data.service_records.map(r=>Y(r.date_received)),...data.trainings.map(r=>Y(r.training_date)),...data.ppm_records.map(r=>Y(r.ppm_date))].filter(Boolean))].sort((a,b)=>b-a);
   const keep={y:$('f_y').value,f:$('f_fac').value};
   $('f_y').innerHTML=opts(ys,'All years');$('f_y').value=keep.y;
   $('f_fac').innerHTML=opts(facs(),'All facilities');$('f_fac').value=keep.f;
   $('fac_list').innerHTML=facs().map(f=>`<option value="${esc(f)}">`).join('');
-  if(!$('f_d').options.length){$('f_d').innerHTML=opts(DISTRICTS,'All districts');$('f_t').innerHTML=opts(TYPES,'All types');$('f_s').innerHTML=opts(STATUS,'All (total received)')}
+  if(!$('f_d').options.length){$('f_d').innerHTML=opts(DISTRICTS,'All districts');$('f_t').innerHTML=opts(TYPES,'All types');$('f_s').innerHTML=opts(STATUS,'All (total received)');$('f_q').innerHTML=opts(QUARTERS,'All quarters')}
 }
-function F(){return{y:$('f_y').value,d:$('f_d').value,t:$('f_t').value,fac:$('f_fac').value,from:$('f_from').value,to:$('f_to').value,s:$('f_s').value}}
+function F(){return{y:$('f_y').value,d:$('f_d').value,t:$('f_t').value,fac:$('f_fac').value,from:$('f_from').value,to:$('f_to').value,s:$('f_s').value,q:$('f_q').value}}
 function pass(t,r,skipYear){
   const f=F(),dt=r[DATE[t]];
-  return (skipYear||!f.y||Y(dt)==f.y)&&(!f.d||r.district===f.d)&&(!f.t||r.facility_type===f.t)&&(!f.fac||(r.facility||'').trim()===f.fac)&&(!f.from||dt>=f.from)&&(!f.to||dt<=f.to)&&(t!=='service_records'||!f.s||r.status===f.s);
+  return (skipYear||!f.y||Y(dt)==f.y)&&(!f.d||r.district===f.d)&&(!f.t||r.facility_type===f.t)&&(!f.fac||(r.facility||'').trim()===f.fac)&&(!f.from||dt>=f.from)&&(!f.to||dt<=f.to)&&(t!=='service_records'||!f.s||r.status===f.s)&&(t!=='ppm_records'||!f.q||r.quarter===f.q);
 }
 const rows=t=>data[t].filter(r=>pass(t,r));
-function resetF(){['f_y','f_d','f_t','f_fac','f_from','f_to','f_s'].forEach(i=>$(i).value='');render()}
+function resetF(){['f_y','f_d','f_t','f_fac','f_from','f_to','f_s','f_q'].forEach(i=>$(i).value='');render()}
 document.querySelectorAll('.filters select,.filters input').forEach(e=>e.addEventListener('change',render));
 document.querySelectorAll('.side nav button').forEach(b=>b.onclick=()=>{
   tab=b.dataset.t;document.querySelectorAll('.side nav button').forEach(x=>x.classList.toggle('on',x===b));
-  ['dash','svc','trn'].forEach(s=>$(s).classList.toggle('hide',s!==tab));
-  $('f_s_wrap').classList.toggle('hide',tab==='trn');
+  ['dash','svc','trn','ppm'].forEach(s=>$(s).classList.toggle('hide',s!==tab));
+  $('f_s_wrap').classList.toggle('hide',!['dash','svc'].includes(tab));$('f_q_wrap').classList.toggle('hide',tab!=='ppm');
   $('ttl').textContent=TITLES[tab][0];$('sub').textContent=TITLES[tab][1];render();
 });
 $('sub').textContent=TITLES.dash[1];
@@ -250,7 +260,8 @@ function draw(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart($(
 
 function render(){
   VIS=visits();
-  const sr=rows('service_records'),tr=rows('trainings');
+  LATEST={};data.ppm_records.forEach(r=>{const k=pk(r);if(!LATEST[k]||r.ppm_date>LATEST[k])LATEST[k]=r.ppm_date});
+  const sr=rows('service_records'),tr=rows('trainings'),pm=rows('ppm_records');
   if(tab==='dash'){
     const N=sr.length,f=F(),cnt=s=>sr.filter(r=>r.status===s).length;
     const rep=cnt('Repaired')+cnt('Dispatched'),work=cnt('Awaiting repair')+cnt('In repair');
@@ -258,7 +269,7 @@ function render(){
     $('hero').innerHTML=`<div><div class="big">${N}</div><div class="lbl">equipment received${f.y?' in '+f.y:', all years'}</div></div>
       <div><div class="seg">${segs.map(([s,n,c])=>n?`<i style="flex:${n};background:${c}"></i>`:'').join('')}</div>
       <div class="leg">${segs.map(([s,n,c])=>`<span><i style="background:${c}"></i>${n} ${s.toLowerCase()}</span>`).join('')}</div></div>`;
-    const it=[[rep,'Repaired',N?Math.round(rep/N*100)+'% of received':''],[cnt('Dispatched'),'Dispatched',''],[work,'Still in the workshop',''],[sr.filter(r=>VIS.m[r.id]>1).length,'Return visits','came back after an earlier repair'],[tr.length,'Trainings',''],[tr.reduce((a,r)=>a+(+r.trainees||0),0),'Trainees','']];
+    const it=[[rep,'Repaired',N?Math.round(rep/N*100)+'% of received':''],[cnt('Dispatched'),'Dispatched',''],[work,'Still in the workshop',''],[sr.filter(r=>VIS.m[r.id]>1).length,'Return visits','came back after an earlier repair'],[pm.length,'PPM visits',''],[tr.length,'Trainings',''],[tr.reduce((a,r)=>a+(+r.trainees||0),0),'Trainees','']];
     $('strip').innerHTML=it.map(([n,l,s])=>`<div><b>${n}</b><span>${l}</span>${s?`<em>${s}</em>`:''}</div>`).join('');
     const d=count(sr,'district'),narrow=innerWidth<700;
     draw('c_dist',{type:'doughnut',data:{labels:Object.keys(d),datasets:[{data:Object.values(d),backgroundColor:Object.keys(d).map((_,i)=>COL[i%COL.length]),borderColor:'#fff',borderWidth:2}]},options:{cutout:'62%',plugins:{legend:{position:narrow?'bottom':'right',labels:{boxWidth:10,usePointStyle:true}}}}});
@@ -269,14 +280,15 @@ function render(){
     draw('c_yoy',{type:'line',data:{labels:MON,datasets:yrs.map((y,i)=>({label:y,borderColor:COL[i%COL.length],backgroundColor:COL[i%COL.length],borderWidth:3,pointRadius:3,tension:.3,data:MON.map((_,m)=>all.filter(r=>Y(r.date_received)===y&&+r.date_received.slice(5,7)===m+1).length)}))},options:{scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
     const by={};all.forEach(r=>{const y=Y(r.date_received);by[y]=(by[y]||0)+1});
     const trn=data.trainings.filter(r=>pass('trainings',r,true));
-    const ty=[...new Set([...yrs,...trn.map(r=>Y(r.training_date))])].sort((a,b)=>b-a);
-    let h='<table><thead><tr><th>Year</th><th>Received</th><th>Change</th><th>Repaired</th><th>Dispatched</th><th>Trainings</th><th>Trainees</th></tr></thead><tbody>';
+    const ty=[...new Set([...yrs,...trn.map(r=>Y(r.training_date)),...data.ppm_records.filter(r=>pass('ppm_records',r,true)).map(r=>Y(r.ppm_date))])].sort((a,b)=>b-a);
+    let h='<table><thead><tr><th>Year</th><th>Received</th><th>Change</th><th>Repaired</th><th>Dispatched</th><th>PPM visits</th><th>Trainings</th><th>Trainees</th></tr></thead><tbody>';
     ty.forEach(y=>{const a=all.filter(r=>Y(r.date_received)===y),b=trn.filter(r=>Y(r.training_date)===y),p=by[y-1];
       const c=p?Math.round((a.length-p)/p*100):null;
-      h+=`<tr><td><b>${y}</b></td><td>${a.length}</td><td class="${c>0?'up':'down'}">${c===null?'-':(c>0?'+':'')+c+'%'}</td><td>${a.filter(r=>['Repaired','Dispatched'].includes(r.status)).length}</td><td>${a.filter(r=>r.status==='Dispatched').length}</td><td>${b.length}</td><td>${b.reduce((s,r)=>s+(+r.trainees||0),0)}</td></tr>`});
+      h+=`<tr><td><b>${y}</b></td><td>${a.length}</td><td class="${c>0?'up':'down'}">${c===null?'-':(c>0?'+':'')+c+'%'}</td><td>${a.filter(r=>['Repaired','Dispatched'].includes(r.status)).length}</td><td>${a.filter(r=>r.status==='Dispatched').length}</td><td>${data.ppm_records.filter(r=>pass('ppm_records',r,true)&&Y(r.ppm_date)===y).length}</td><td>${b.length}</td><td>${b.reduce((s,r)=>s+(+r.trainees||0),0)}</td></tr>`});
     $('ytab').innerHTML=h+'</tbody></table>';
   }
   if(tab==='svc')table('svc_t','service_records',sr,['date_received','facility','facility_type','district','equipment','manufacturer','model','serial_number','visit','problem','part_replaced','status','date_dispatched','comments']);
+  if(tab==='ppm')table('ppm_t','ppm_records',pm,['ppm_date','quarter','facility','facility_type','district','equipment','manufacturer','serial_number','work_done','next_service_date','remarks']);
   if(tab==='trn')table('trn_t','trainings',tr,['training_date','facility','facility_type','district','equipment','trainees','venue','remarks']);
 }
 function table(el,t,a,cols){
@@ -284,12 +296,12 @@ function table(el,t,a,cols){
   if(!a.length){$(el).innerHTML='<div class="empty">No records match these filters. Use the Add button to create one.</div>';return}
   $(el).innerHTML='<table><thead><tr>'+cols.map(c=>`<th>${lab[c]}</th>`).join('')+'<th></th></tr></thead><tbody>'+a.map(r=>'<tr>'+cols.map(c=>{
     const z=VIS.sz[r.id];
-    const v=c==='status'?`<span class="tag ${slug(r[c])}">${esc(r[c])}</span>`:c==='visit'?(z>1?`<button class="tag Return" onclick="showHistory('${r.id}')">Visit ${VIS.m[r.id]} of ${z}</button>`:''):esc(r[c]);
-    return `<td class="${['problem','comments','remarks'].includes(c)?'wrap':''}">${v}</td>`}).join('')+`<td><button class="btn sm" onclick="openForm('${t}','${r.id}')">Edit</button> <button class="btn sm del" onclick="del('${t}','${r.id}')">Delete</button></td></tr>`).join('')+'</tbody></table>';
+    const v=c==='status'?`<span class="tag ${slug(r[c])}">${esc(r[c])}</span>`:c==='visit'?(z>1?`<button class="tag Return" onclick="showHistory('${r.id}')">Visit ${VIS.m[r.id]} of ${z}</button>`:''):c==='next_service_date'?dueTag(r):esc(r[c]);
+    return `<td class="${['problem','comments','remarks','work_done'].includes(c)?'wrap':''}">${v}</td>`}).join('')+`<td><button class="btn sm" onclick="openForm('${t}','${r.id}')">Edit</button> <button class="btn sm del" onclick="del('${t}','${r.id}')">Delete</button></td></tr>`).join('')+'</tbody></table>';
 }
 function openForm(t,id){
   editing={t,id};const r=id?data[t].find(x=>x.id===id):{};
-  $('frm').innerHTML=`<h2 class="full" style="margin:0">${id?'Edit':'Add'} ${t==='trainings'?'training':'equipment'}</h2>`+FIELDS[t].map(([k,l,ty,req])=>{
+  $('frm').innerHTML=`<h2 class="full" style="margin:0">${id?'Edit':'Add'} ${{trainings:'training',ppm_records:'PPM record'}[t]||'equipment'}</h2>`+FIELDS[t].map(([k,l,ty,req])=>{
     const v=r[k]??(k==='status'?'Awaiting repair':'');const full=ty==='area'?'full':'';
     const inp=Array.isArray(ty)?`<select name="${k}"><option value=""></option>${ty.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select>`
       :ty==='area'?`<textarea name="${k}" rows="2">${esc(v)}</textarea>`
@@ -307,6 +319,7 @@ function openForm(t,id){
     };
     el.serial_number.addEventListener('input',hintFn);hintFn();
   }
+  if(t==='ppm_records')el.ppm_date.addEventListener('change',()=>{if(el.ppm_date.value&&!el.quarter.value)el.quarter.value=quarterOf(el.ppm_date.value)});
   $('dlg').showModal();
 }
 async function save(e){
@@ -314,6 +327,7 @@ async function save(e){
   new FormData($('frm')).forEach((v,k)=>body[k]=v===''?null:v);
   if(body.trainees!=null)body.trainees=+body.trainees;
   if(body.facility){const m=known(body.facility);body.facility=m?m.facility.trim():body.facility.trim()}
+  if(t==='ppm_records'&&body.next_service_date&&body.ppm_date&&body.next_service_date<body.ppm_date){alert('Next servicing date cannot be earlier than the date of the PPM.');return}
   const {error}=await (id?sb.from(t).update(body).eq('id',id):sb.from(t).insert(body));
   if(error){alert('Could not save: '+error.message);return}
   $('dlg').close();await load();
@@ -322,9 +336,10 @@ async function del(t,id){
   if(!confirm('Delete this record? This cannot be undone.'))return;
   const {error}=await sb.from(t).delete().eq('id',id);if(error)alert(error.message);else load();
 }
-/* ---------- Excel import ---------- */
-const HDR=Object.fromEntries(FIELDS.service_records.map(f=>[f[1].toLowerCase(),f[0]]));
-let FM={},pending=[];
+/* ---------- Excel import (service log and PPM) ---------- */
+const HDRS={};Object.keys(FIELDS).forEach(t=>HDRS[t]=Object.fromEntries(FIELDS[t].map(f=>[f[1].toLowerCase(),f[0]])));
+const SHEET={service_records:'Equipment',ppm_records:'PPM'};
+let FM={},pending=[],pendingT='service_records';
 function cv(v){
   if(v==null)return '';
   if(v instanceof Date)return v.toISOString().slice(0,10);
@@ -345,39 +360,61 @@ function toISO(s){
   return null;
 }
 const canon=(list,v)=>list.find(x=>x.toLowerCase()===String(v).toLowerCase());
-function cleanRow(o){
-  const err=[],rec={};
-  ['facility','equipment','manufacturer','model','serial_number','problem','part_replaced','comments'].forEach(k=>rec[k]=(o[k]||'').trim()||null);
-  rec.date_received=toISO(o.date_received);
-  if(!rec.date_received)err.push('Date received is missing or not a valid date');
-  if(!rec.facility)err.push('Facility is missing');
-  if(!rec.equipment)err.push('Equipment is missing');
-  rec.date_dispatched=null;
-  if(o.date_dispatched){
-    rec.date_dispatched=toISO(o.date_dispatched);
-    if(!rec.date_dispatched)err.push('Date dispatched is not a valid date');
-    else if(rec.date_received&&rec.date_dispatched<rec.date_received)err.push('Date dispatched is before Date received');
-  }
+const quarterOf=iso=>QUARTERS[Math.floor((+iso.slice(5,7)-1)/3)];
+function placeFields(o,rec,err){
   rec.facility_type=null;
   if(o.facility_type){rec.facility_type=canon(TYPES,o.facility_type)||null;if(!rec.facility_type)err.push(`Facility type "${o.facility_type}" is not in the list`)}
   rec.district=null;
   if(o.district){rec.district=canon(DISTRICTS,o.district)||null;if(!rec.district)err.push(`District "${o.district}" is not in the list`)}
-  rec.status='Awaiting repair';
-  if(o.status){const s=canon(STATUS,o.status)||(o.status.toLowerCase()==='received'?'Awaiting repair':null);if(!s)err.push(`Status "${o.status}" is not in the list`);else rec.status=s}
   if(rec.facility){
     const m=known(rec.facility);
     if(m){rec.facility=m.facility.trim();rec.facility_type=rec.facility_type||m.facility_type||null;rec.district=rec.district||m.district||null}
     else{const k=rec.facility.toLowerCase();rec.facility=FM[k]||(FM[k]=rec.facility)}
   }
+}
+function cleanRow(t,o){
+  const err=[],rec={};
+  const txt=t==='ppm_records'?['facility','equipment','manufacturer','serial_number','work_done','remarks']:['facility','equipment','manufacturer','model','serial_number','problem','part_replaced','comments'];
+  txt.forEach(k=>rec[k]=(o[k]||'').trim()||null);
+  if(!rec.facility)err.push('Facility is missing');
+  if(!rec.equipment)err.push('Equipment is missing');
+  if(t==='ppm_records'){
+    rec.ppm_date=toISO(o.ppm_date);
+    if(!rec.ppm_date)err.push('Date of PPM is missing or not a valid date');
+    rec.next_service_date=null;
+    if(o.next_service_date){
+      rec.next_service_date=toISO(o.next_service_date);
+      if(!rec.next_service_date)err.push('Next servicing date is not a valid date');
+      else if(rec.ppm_date&&rec.next_service_date<rec.ppm_date)err.push('Next servicing date is before Date of PPM');
+    }
+    rec.quarter=null;
+    if(o.quarter){
+      const w=['first','second','third','fourth'];let i=w.findIndex(x=>o.quarter.toLowerCase().includes(x));
+      if(i<0){const d=o.quarter.match(/[1-4]/);i=d?+d[0]-1:-1}
+      if(i<0)err.push(`Quarter "${o.quarter}" is not recognised`);else rec.quarter=QUARTERS[i];
+    }else if(rec.ppm_date)rec.quarter=quarterOf(rec.ppm_date);
+  }else{
+    rec.date_received=toISO(o.date_received);
+    if(!rec.date_received)err.push('Date received is missing or not a valid date');
+    rec.date_dispatched=null;
+    if(o.date_dispatched){
+      rec.date_dispatched=toISO(o.date_dispatched);
+      if(!rec.date_dispatched)err.push('Date dispatched is not a valid date');
+      else if(rec.date_received&&rec.date_dispatched<rec.date_received)err.push('Date dispatched is before Date received');
+    }
+    rec.status='Awaiting repair';
+    if(o.status){const s=canon(STATUS,o.status)||(o.status.toLowerCase()==='received'?'Awaiting repair':null);if(!s)err.push(`Status "${o.status}" is not in the list`);else rec.status=s}
+  }
+  placeFields(o,rec,err);
   return{err,rec};
 }
-async function pickFile(e){
+async function pickFile(e,t='service_records'){
   const file=e.target.files[0];e.target.value='';if(!file)return;
   try{
     const wb=new ExcelJS.Workbook();await wb.xlsx.load(await file.arrayBuffer());
-    const ws=wb.getWorksheet('Equipment')||wb.worksheets[0];
+    const ws=wb.getWorksheet(SHEET[t])||wb.worksheets[0];
     const map={};
-    ws.getRow(1).eachCell((c,n)=>{const k=HDR[cv(c.value).replace(/\*/g,'').trim().toLowerCase()];if(k)map[n]=k});
+    ws.getRow(1).eachCell((c,n)=>{const k=HDRS[t][cv(c.value).replace(/\*/g,'').trim().toLowerCase()];if(k)map[n]=k});
     if(!Object.keys(map).length){alert('Column headings were not recognised. Please use the file from Download template.');return}
     FM={};const good=[],bad=[];
     ws.eachRow((row,i)=>{
@@ -385,14 +422,14 @@ async function pickFile(e){
       const o={};let any=false;
       for(const n in map){const v=cv(row.getCell(+n).value);if(v!=='')any=true;o[map[n]]=v}
       if(!any)return;
-      const r=cleanRow(o);
+      const r=cleanRow(t,o);
       if(r.err.length)bad.push(`Row ${i}: ${r.err.join('; ')}`);else good.push(r.rec);
     });
-    showImport(good,bad,file.name);
+    showImport(good,bad,file.name,t);
   }catch(err){alert('Could not read that file. Please use an .xlsx workbook.\n'+err.message)}
 }
-function showImport(good,bad,name){
-  pending=good;
+function showImport(good,bad,name,t){
+  pending=good;pendingT=t;
   $('imp').innerHTML=`<h2 style="margin:0 0 4px">Import preview</h2><p style="margin:0 0 14px;color:var(--mute)">${esc(name)}</p>
   <div class="strip" style="margin-bottom:14px"><div><b>${good.length}</b><span>ready to import</span></div><div><b>${bad.length}</b><span>rows with problems</span></div></div>
   ${bad.length?`<div class="alert" style="max-height:200px;overflow:auto">${bad.slice(0,50).map(esc).join('<br>')}${bad.length>50?'<br>and '+(bad.length-50)+' more':''}<br><br>Rows with problems are skipped. Fix them in Excel and import again.</div>`:''}
@@ -403,25 +440,36 @@ async function runImport(){
   const b=$('goimp');b.disabled=true;
   for(let i=0;i<pending.length;i+=200){
     b.textContent=`Importing ${Math.min(i+200,pending.length)} of ${pending.length}...`;
-    const {error}=await sb.from('service_records').insert(pending.slice(i,i+200));
+    const {error}=await sb.from(pendingT).insert(pending.slice(i,i+200));
     if(error){alert('Import stopped near row '+(i+1)+': '+error.message+'\nRecords before that point were saved.');break}
   }
   $('imp').close();pending=[];await load();
 }
 
 /* ---------- Formatted Excel template ---------- */
-async function downloadTemplate(){
+async function downloadTemplate(t='service_records'){
+  const ppm=t==='ppm_records';
   const NAVY='FF0B2E4F',GOLD='FFF2B134',LINE={style:'thin',color:{argb:'FFD5DEE8'}};
-  const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('Equipment',{views:[{state:'frozen',ySplit:1}]});
-  const cols=FIELDS.service_records;
-  const W={date_received:16,facility:30,facility_type:20,district:24,equipment:26,manufacturer:22,model:18,serial_number:20,status:16,problem:38,part_replaced:24,date_dispatched:16,comments:32};
-  ws.columns=cols.map(([k,l,t,req])=>({header:l+(req?' *':''),key:k,width:W[k]||18}));
+  const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet(SHEET[t],{views:[{state:'frozen',ySplit:1}]});
+  const cols=FIELDS[t];
+  const W={date_received:16,ppm_date:16,quarter:16,facility:30,facility_type:20,district:24,equipment:26,manufacturer:22,model:18,serial_number:20,status:16,problem:38,work_done:42,part_replaced:24,date_dispatched:16,next_service_date:18,comments:32,remarks:32};
+  ws.columns=cols.map(([k,l,ty,req])=>({header:l+(req?' *':''),key:k,width:W[k]||18}));
   const hr=ws.getRow(1);hr.height=32;
   hr.eachCell((c,n)=>{const req=cols[n-1][3];c.fill={type:'pattern',pattern:'solid',fgColor:{argb:req?GOLD:NAVY}};c.font={bold:true,size:11,color:{argb:req?NAVY:'FFFFFFFF'}};c.alignment={vertical:'middle',wrapText:true}});
 
   const is=wb.addWorksheet('Instructions');is.getColumn(1).width=110;
-  is.getCell('A1').value='CEU Service Log: bulk equipment import';is.getCell('A1').font={bold:true,size:16,color:{argb:NAVY}};
-  [
+  is.getCell('A1').value=ppm?'CEU Service Log: bulk preventive maintenance (PPM) import':'CEU Service Log: bulk equipment import';
+  is.getCell('A1').font={bold:true,size:16,color:{argb:NAVY}};
+  const lines=ppm?[
+   '1. Fill in the PPM sheet, one row per PPM done. Columns with an asterisk (gold headings) are required.',
+   '2. Pick Quarter, Facility type and District from the drop-down lists. Facility is typed; use the same spelling each time. Matching names are merged with facilities already in the system.',
+   '3. Leave Quarter empty and it is worked out from the Date of PPM (Jan to Mar is the first quarter, and so on).',
+   '4. Enter dates as dd/mm/yyyy, for example 14/03/2026. Next servicing date cannot be earlier than Date of PPM.',
+   '5. Do not rename the column headings. Save the file as .xlsx, then use Import from Excel in the PPM tab.',
+   '6. The app shows a preview first. Rows with problems are listed and skipped; the good rows are imported.',
+   '',
+   'Example row: 14/03/2026 | First quarter | Example Health Centre | Health Centre | Nzema East | Autoclave | Tuttnauer | SN12345 | Cleaned chamber, replaced door gasket, calibrated | 14/06/2026 | None'
+  ]:[
    '1. Fill in the Equipment sheet, one row per item. Columns with an asterisk (gold headings) are required.',
    '2. Pick Facility type, District and Status from the drop-down lists. Facility is typed; use the same spelling each time. Matching names are merged with facilities already in the system.',
    '3. Enter dates as dd/mm/yyyy, for example 14/03/2026. Date dispatched cannot be earlier than Date received.',
@@ -431,24 +479,48 @@ async function downloadTemplate(){
    '7. If equipment comes back for another repair, add it as a new row with the same serial number. Each visit is its own record.',
    '',
    'Example row: 14/03/2026 | Example Health Centre | Health Centre | Nzema East | Patient monitor | Mindray | iMEC8 | SN12345 | No display | Power board | Repaired | 20/03/2026 | Tested and working'
-  ].forEach((t,i)=>{const c=is.getCell(i+3,1);c.value=t;c.alignment={wrapText:true,vertical:'top'}});
+  ];
+  lines.forEach((x,i)=>{const c=is.getCell(i+3,1);c.value=x;c.alignment={wrapText:true,vertical:'top'}});
 
   const ls=wb.addWorksheet('Lists',{state:'hidden'});
-  ls.getCell('A1').value='Facility type';ls.getCell('B1').value='District';ls.getCell('C1').value='Status';
+  ['Facility type','District','Status','Quarter'].forEach((h,i)=>ls.getCell(1,i+1).value=h);
   TYPES.forEach((v,i)=>ls.getCell(i+2,1).value=v);
   DISTRICTS.forEach((v,i)=>ls.getCell(i+2,2).value=v);
   STATUS.forEach((v,i)=>ls.getCell(i+2,3).value=v);
-  const L={facility_type:`Lists!$A$2:$A$${TYPES.length+1}`,district:`Lists!$B$2:$B$${DISTRICTS.length+1}`,status:`Lists!$C$2:$C$${STATUS.length+1}`};
+  QUARTERS.forEach((v,i)=>ls.getCell(i+2,4).value=v);
+  const L={facility_type:`Lists!$A$2:$A$${TYPES.length+1}`,district:`Lists!$B$2:$B$${DISTRICTS.length+1}`,status:`Lists!$C$2:$C$${STATUS.length+1}`,quarter:`Lists!$D$2:$D$${QUARTERS.length+1}`};
   const D=new Date(Date.UTC(2000,0,1));
-  for(let r=2;r<=501;r++)cols.forEach(([k,l,t],i)=>{
+  for(let r=2;r<=501;r++)cols.forEach(([k,l,ty],i)=>{
     const c=ws.getCell(r,i+1);c.border={bottom:LINE,right:LINE};
     if(L[k])c.dataValidation={type:'list',allowBlank:true,formulae:[L[k]],showErrorMessage:true,errorTitle:l,error:'Please pick a value from the drop-down list.'};
-    if(t==='date'){c.numFmt='dd/mm/yyyy';c.dataValidation={type:'date',operator:'greaterThan',allowBlank:true,formulae:[D],showErrorMessage:true,errorTitle:l,error:'Enter a valid date, for example 14/03/2026.'}}
+    if(ty==='date'){c.numFmt='dd/mm/yyyy';c.dataValidation={type:'date',operator:'greaterThan',allowBlank:true,formulae:[D],showErrorMessage:true,errorTitle:l,error:'Enter a valid date, for example 14/03/2026.'}}
   });
   const buf=await wb.xlsx.writeBuffer();
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
-  a.download='CEU_Equipment_Import_Template.xlsx';a.click();
+  a.download=ppm?'CEU_PPM_Import_Template.xlsx':'CEU_Equipment_Import_Template.xlsx';a.click();
+}
+
+/* ---------- PPM: due dates and PDF export ---------- */
+let LATEST={};
+const pk=r=>(r.serial_number||'').trim().toLowerCase()||((r.facility||'')+'|'+(r.equipment||'')).trim().toLowerCase();
+function dueTag(r){
+  const d=r.next_service_date;if(!d)return '';
+  if(r.ppm_date<LATEST[pk(r)])return esc(d);
+  const today=new Date().toISOString().slice(0,10),soon=new Date(Date.now()+30*864e5).toISOString().slice(0,10);
+  return d<today?`<span class="tag Beyond-repair">${esc(d)} overdue</span>`:d<=soon?`<span class="tag Awaiting-repair">${esc(d)} due soon</span>`:esc(d);
+}
+function exportPDF(){
+  const a=rows('ppm_records'),f=F();
+  if(!a.length){alert('There are no PPM records to export with the current filters.');return}
+  const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const cols=[['ppm_date','Date of PPM'],['quarter','Quarter'],['facility','Facility'],['facility_type','Type'],['district','District'],['equipment','Equipment'],['manufacturer','Manufacturer'],['serial_number','Serial no.'],['work_done','Work done'],['next_service_date','Next servicing'],['remarks','Remarks']];
+  doc.setFontSize(15);doc.setTextColor(11,46,79);doc.text('Preventive Maintenance (PPM) Report',14,14);
+  doc.setFontSize(9);doc.setTextColor(100);
+  const bits=[f.y&&'Year '+f.y,f.q,f.d&&'District: '+f.d,f.t&&'Facility type: '+f.t,f.fac&&'Facility: '+f.fac,f.from&&'From '+f.from,f.to&&'To '+f.to].filter(Boolean);
+  doc.text('Clinical Engineering Unit, Western Region Health Directorate. '+(bits.length?bits.join(', '):'All records')+'. '+a.length+' records. Generated '+new Date().toISOString().slice(0,10)+'.',14,20);
+  doc.autoTable({startY:24,head:[cols.map(c=>c[1])],body:a.map(r=>cols.map(c=>r[c[0]]??'')),styles:{fontSize:7.5,cellPadding:1.8,overflow:'linebreak'},headStyles:{fillColor:[11,46,79],textColor:255},alternateRowStyles:{fillColor:[240,245,250]},columnStyles:{8:{cellWidth:50},10:{cellWidth:34}}});
+  doc.save('CEU_PPM_Report_'+new Date().toISOString().slice(0,10)+'.pdf');
 }
 
 function csv(t){
