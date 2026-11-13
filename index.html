@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>CEU Service Log</title>
+<title>CEU Service Logger</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -102,7 +102,7 @@ dialog .full{grid-column:1/-1}
 <body>
 <div id="login" class="loginwrap hide">
   <div class="logincard">
-    <h1>CEU Service Log</h1>
+    <h1>CEU Service Logger App</h1>
     <label>Email<input id="em" type="email" autocomplete="username"></label>
     <label>Password<input id="pw" type="password" autocomplete="current-password"></label>
     <button class="btn gold" onclick="signIn()">Sign in</button>
@@ -126,7 +126,7 @@ dialog .full{grid-column:1/-1}
 <main>
   <div class="head">
     <div><h1 id="ttl">Overview</h1><p id="sub"></p></div>
-    <button class="btn" onclick="sb.auth.signOut()">Sign out</button>
+    <button class="btn" onclick="sb.auth.signOut()">Exit</button>
   </div>
   <div id="err" class="alert hide"></div>
   <div class="filters">
@@ -189,7 +189,7 @@ const FIELDS={
 const QUARTERS=['First quarter','Second quarter','Third quarter','Fourth quarter'];
 FIELDS.ppm_records=[['ppm_date','Date of PPM','date',1],['quarter','Quarter',QUARTERS],['facility','Facility name','fac',1],['facility_type','Facility type',TYPES],['district','District',DISTRICTS],['equipment','Equipment','text',1],['manufacturer','Manufacturer','text'],['serial_number','Serial number','text'],['work_done','Work done','area'],['next_service_date','Next servicing date','date'],['remarks','Remarks','area']];
 const DATE={service_records:'date_received',trainings:'training_date',ppm_records:'ppm_date'};
-const TITLES={dash:['Summary','The work done by the unit, summarized below.'],svc:['Coorective Maintenance',' Details of equipment brought in for repair.'],trn:['User Trainings','Training sessions delivered to facilities.'],ppm:['Preventive Maintenance','Planned preventive maintenance (PPM) visits and upcoming servicing dates.']};
+const TITLES={dash:['Summary','The work done by the unit, summarized below.'],svc:['Corrective Maintenance',' Details of equipment brought in for repair.'],trn:['User Trainings','Training sessions delivered to facilities.'],ppm:['Preventive Maintenance','Planned preventive maintenance (PPM) visits and upcoming servicing dates.']};
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
