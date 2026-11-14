@@ -76,7 +76,11 @@ tbody tr:hover{background:#f6f9fc}
 .tag.Return{background:#e6e0fa;color:#4b3aa8;border:0;cursor:pointer;font-family:inherit}
 .hint{background:#fdf0d2;color:#8a5a00;border-radius:10px;padding:9px 12px;font-size:13px}
 .hint:empty{display:none}
-#imp{width:min(840px,94vw)}
+#imp{width:min(900px,94vw)}
+.lnk{background:none;border:0;padding:0;font:inherit;font-weight:500;color:var(--navy);text-decoration:underline;text-decoration-color:var(--gold);text-decoration-thickness:2px;text-underline-offset:3px;cursor:pointer;text-align:left}
+.tag.k-rep{background:#0b2e4f;color:#fff}
+.tag.k-ppm{background:#e6e0fa;color:#4b3aa8}
+.bar input{width:min(360px,100%)}
 .trio{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
 .stream{font:inherit;text-align:left;color:#fff;background:#1b4670;border:0;border-radius:22px;padding:20px 24px;cursor:pointer;box-shadow:inset 0 0 0 2px transparent;transition:background .15s}
 .stream:hover{background:#15385e}
@@ -114,7 +118,7 @@ dialog .full{grid-column:1/-1}
     <h1>CEU Service Logger</h1>
     <label>Email<input id="em" type="email" autocomplete="username"></label>
     <label>Password<input id="pw" type="password" autocomplete="current-password"></label>
-    <button class="btn gold" onclick="signIn()">Sign in</button>
+    <button class="btn gold" onclick="signIn()">Exit</button>
     <div id="lerr" style="color:#a8362a"></div>
   </div>
 </div>
@@ -123,19 +127,20 @@ dialog .full{grid-column:1/-1}
 <aside class="side">
   <div class="brand">
     <svg viewBox="0 0 32 32"><rect width="32" height="32" rx="10" fill="#f2b134"/><path d="M16 8v16M8 16h16" stroke="#0b2e4f" stroke-width="4" stroke-linecap="round"/></svg>
-    <div><b>CEU Equipment</b><small>Western Region</small></div>
+    <div><b>CEU Equiment</b><small>Western Region</small></div>
   </div>
   <nav>
     <button data-t="dash" class="on"><svg class="i" viewBox="0 0 24 24"><path d="M4 13h6V4H4zM14 20h6V4h-6zM4 20h6v-3H4z"/></svg>Summary</button>
-    <button data-t="svc"><svg class="i" viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/></svg>Servicing</button>
+    <button data-t="eqp"><svg class="i" viewBox="0 0 24 24"><path d="M4 7l8-4 8 4-8 4zM4 7v10l8 4 8-4V7M12 11v10"/></svg>Equipment</button>
+    <button data-t="svc"><svg class="i" viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/></svg>Repairs</button>
     <button data-t="ppm"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>PPM</button>
-    <button data-t="trn"><svg class="i" viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5zM7 12v4c0 1 2.2 2.5 5 2.5s5-1.5 5-2.5v-4"/></svg>User Trainings</button>
+    <button data-t="trn"><svg class="i" viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5zM7 12v4c0 1 2.2 2.5 5 2.5s5-1.5 5-2.5v-4"/></svg>Trainings</button>
   </nav>
 </aside>
 <main>
   <div class="head">
     <div><h1 id="ttl">Summary</h1><p id="sub"></p></div>
-    <button class="btn" onclick="sb.auth.signOut()">Exit</button>
+    <button class="btn" onclick="sb.auth.signOut()">Sign out</button>
   </div>
   <div id="err" class="alert hide"></div>
   <div class="filters">
@@ -171,6 +176,11 @@ dialog .full{grid-column:1/-1}
     <div class="bar"><button class="btn gold" onclick="openForm('trainings')">Add training</button><button class="btn" onclick="csv('trainings')">Export CSV</button></div>
     <div class="panel tw" id="trn_t"></div>
   </section>
+  <section id="eqp" class="hide">
+    <div class="bar"><input id="eq_q" type="search" placeholder="Search name, serial number, manufacturer, facility" oninput="render()"><span id="eq_n" style="align-self:center;color:var(--mute)"></span></div>
+    <div class="panel tw" id="eq_t"></div>
+  </section>
+
   <section id="ppm" class="hide">
     <div class="bar"><button class="btn gold" onclick="openForm('ppm_records')">Add PPM</button><button class="btn" onclick="$('xlp').click()">Import from Excel</button><button class="btn" onclick="downloadTemplate('ppm_records')">Download template</button><button class="btn" onclick="exportPDF()">Export as PDF</button><input type="file" id="xlp" accept=".xlsx" class="hide" onchange="pickFile(event,'ppm_records')"></div>
     <div class="panel tw" id="ppm_t"></div>
@@ -199,7 +209,7 @@ const FIELDS={
 const QUARTERS=['First quarter','Second quarter','Third quarter','Fourth quarter'];
 FIELDS.ppm_records=[['ppm_date','Date of PPM','date',1],['quarter','Quarter',QUARTERS],['facility','Facility name','fac',1],['facility_type','Facility type',TYPES],['district','District',DISTRICTS],['equipment','Equipment','text',1],['manufacturer','Manufacturer','text'],['serial_number','Serial number','text'],['work_done','Work done','area'],['next_service_date','Next servicing date','date'],['remarks','Remarks','area']];
 const DATE={service_records:'date_received',trainings:'training_date',ppm_records:'ppm_date'};
-const TITLES={dash:['Summary','The work done by the unit, summarized below.'],svc:['Corrective Maintenance',' Details of equipment brought in for repair.'],trn:['User Trainings','Training sessions delivered to facilities.'],ppm:['Preventive Maintenance','Planned preventive maintenance (PPM) visits and upcoming servicing dates.']};
+const TITLES={dash:['Summary','The work done by the unit, summarized below.'],svc:['Corrective Maintenance',' Details of equipment brought in for repair.'],trn:['User Trainings','Training sessions delivered to nurses and other health workers.'],eqp:['Equipment','Every item repaired or serviced, with its full history. Tap an equipment name to open it.'],ppm:['Preventive maintenance','Planned preventive maintenance (PPM) equipment and upcoming servicing dates.']};
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -238,16 +248,16 @@ function fillFilters(){
   if(!$('f_d').options.length){$('f_d').innerHTML=opts(DISTRICTS,'All districts');$('f_t').innerHTML=opts(TYPES,'All types');$('f_s').innerHTML=opts(STATUS,'All (total received)');$('f_q').innerHTML=opts(QUARTERS,'All quarters')}
 }
 function F(){return{y:$('f_y').value,d:$('f_d').value,t:$('f_t').value,fac:$('f_fac').value,from:$('f_from').value,to:$('f_to').value,s:$('f_s').value,q:$('f_q').value}}
-function pass(t,r,skipYear){
+function pass(t,r,skipYear,skipX){
   const f=F(),dt=r[DATE[t]];
-  return (skipYear||!f.y||Y(dt)==f.y)&&(!f.d||r.district===f.d)&&(!f.t||r.facility_type===f.t)&&(!f.fac||(r.facility||'').trim()===f.fac)&&(!f.from||dt>=f.from)&&(!f.to||dt<=f.to)&&(t!=='service_records'||!f.s||r.status===f.s)&&(t!=='ppm_records'||!f.q||r.quarter===f.q);
+  return (skipYear||!f.y||Y(dt)==f.y)&&(!f.d||r.district===f.d)&&(!f.t||r.facility_type===f.t)&&(!f.fac||(r.facility||'').trim()===f.fac)&&(!f.from||dt>=f.from)&&(!f.to||dt<=f.to)&&(skipX||t!=='service_records'||!f.s||r.status===f.s)&&(skipX||t!=='ppm_records'||!f.q||r.quarter===f.q);
 }
 const rows=t=>data[t].filter(r=>pass(t,r));
 function resetF(){['f_y','f_d','f_t','f_fac','f_from','f_to','f_s','f_q'].forEach(i=>$(i).value='');render()}
 document.querySelectorAll('.filters select,.filters input').forEach(e=>e.addEventListener('change',render));
 document.querySelectorAll('.side nav button').forEach(b=>b.onclick=()=>{
   tab=b.dataset.t;document.querySelectorAll('.side nav button').forEach(x=>x.classList.toggle('on',x===b));
-  ['dash','svc','trn','ppm'].forEach(s=>$(s).classList.toggle('hide',s!==tab));
+  ['dash','svc','trn','ppm','eqp'].forEach(s=>$(s).classList.toggle('hide',s!==tab));
   $('f_s_wrap').classList.toggle('hide',!['dash','svc'].includes(tab));$('f_q_wrap').classList.toggle('hide',tab!=='ppm');
   $('ttl').textContent=TITLES[tab][0];$('sub').textContent=TITLES[tab][1];render();
 });
@@ -259,12 +269,6 @@ function visits(){
   Object.values(g).forEach(a=>{a.sort((x,y)=>(x.date_received+(x.created_at||'')).localeCompare(y.date_received+(y.created_at||'')));a.forEach((r,i)=>{m[r.id]=i+1;sz[r.id]=a.length})});
   return{m,sz};
 }
-function showHistory(id){
-  const r=data.service_records.find(x=>x.id===id),k=(r.serial_number||'').trim().toLowerCase();
-  const a=data.service_records.filter(x=>(x.serial_number||'').trim().toLowerCase()===k).sort((x,y)=>x.date_received.localeCompare(y.date_received));
-  $('imp').innerHTML=`<h2 style="margin:0 0 4px">${esc(r.equipment)}, serial ${esc(r.serial_number)}</h2><p style="margin:0 0 12px;color:var(--mute)">${a.length} visits logged</p><div class="tw"><table><thead><tr><th>Visit</th><th>Received</th><th>Facility</th><th>Problem</th><th>Part replaced</th><th>Status</th><th>Dispatched</th></tr></thead><tbody>${a.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.date_received)}</td><td>${esc(x.facility)}</td><td class="wrap">${esc(x.problem)}</td><td>${esc(x.part_replaced)}</td><td><span class="tag ${slug(x.status)}">${esc(x.status)}</span></td><td>${esc(x.date_dispatched)}</td></tr>`).join('')}</tbody></table></div><div class="bar" style="margin-top:12px"><button class="btn" onclick="$('imp').close()">Close</button></div>`;
-  $('imp').showModal();
-}
 const count=(a,key)=>{const m={};a.forEach(r=>{const k=r[key]||'Not specified';m[k]=(m[k]||0)+1});return m};
 function draw(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg)}
 
@@ -274,6 +278,7 @@ function render(){
   const sr=rows('service_records'),tr=rows('trainings'),pm=rows('ppm_records');
   if(tab==='dash')renderDash(sr,tr,pm);
   if(tab==='svc')table('svc_t','service_records',sr,['date_received','facility','facility_type','district','equipment','manufacturer','model','serial_number','visit','problem','part_replaced','status','date_dispatched','comments']);
+  if(tab==='eqp')renderEquip();
   if(tab==='ppm')table('ppm_t','ppm_records',pm,['ppm_date','quarter','facility','facility_type','district','equipment','manufacturer','serial_number','work_done','next_service_date','remarks']);
   if(tab==='trn')table('trn_t','trainings',tr,['training_date','facility','facility_type','district','equipment','trainees','venue','remarks']);
 }
@@ -343,12 +348,61 @@ function renderDash(sr,tr,pm){
   $('ytab').innerHTML=h+'</tbody></table>';
 }
 
+/* ---------- Equipment database (built from repair and PPM records) ---------- */
+function equipList(){
+  const g={},get=k=>g[k]||(g[k]={key:k,reps:[],ppms:[]});
+  data.service_records.forEach(r=>get(pk(r)).reps.push(r));
+  data.ppm_records.forEach(r=>get(pk(r)).ppms.push(r));
+  return Object.values(g).map(e=>{
+    e.reps.sort((a,b)=>b.date_received.localeCompare(a.date_received));
+    e.ppms.sort((a,b)=>b.ppm_date.localeCompare(a.ppm_date));
+    const all=[...e.reps.map(r=>[r.date_received,r]),...e.ppms.map(r=>[r.ppm_date,r])].sort((a,b)=>b[0].localeCompare(a[0]));
+    ['equipment','manufacturer','model','serial_number','facility','facility_type','district'].forEach(f=>{const hit=all.find(x=>x[1][f]);e[f]=hit?hit[1][f]:''});
+    e.last=all.length?all[0][0]:'';e.first=all.length?all[all.length-1][0]:'';
+    return e;
+  });
+}
+function renderEquip(){
+  const q=($('eq_q').value||'').trim().toLowerCase();
+  const list=equipList().filter(e=>(e.reps.some(r=>pass('service_records',r,false,true))||e.ppms.some(r=>pass('ppm_records',r,false,true)))&&(!q||[e.equipment,e.manufacturer,e.model,e.serial_number,e.facility].join(' ').toLowerCase().includes(q))).sort((a,b)=>b.last.localeCompare(a.last));
+  $('eq_n').textContent=list.length+' equipment'+(list.length>300?' (showing the 300 most recently active)':'');
+  if(!list.length){$('eq_t').innerHTML='<div class="empty">No equipment matches these filters. Equipment appears here once it has a repair or PPM record.</div>';return}
+  $('eq_t').innerHTML='<table><thead><tr><th>Equipment</th><th>Manufacturer</th><th>Model</th><th>Serial number</th><th>Facility</th><th>District</th><th>Repairs</th><th>PPM</th><th>Last activity</th><th>Latest repair status</th><th>Next PPM due</th></tr></thead><tbody>'+list.slice(0,300).map(e=>{
+    const st=e.reps[0]?`<span class="tag ${slug(e.reps[0].status)}">${esc(e.reps[0].status)}</span>`:'-';
+    const due=e.ppms[0]?(dueTag(e.ppms[0])||'-'):'-';
+    return `<tr><td><button class="lnk" data-k="${esc(e.key)}" onclick="showEquip(this.dataset.k)">${esc(e.equipment)}</button></td><td>${esc(e.manufacturer)}</td><td>${esc(e.model)}</td><td>${e.serial_number?esc(e.serial_number):'<span style="color:var(--mute)">none</span>'}</td><td>${esc(e.facility)}</td><td>${esc(e.district)}</td><td>${e.reps.length}</td><td>${e.ppms.length}</td><td>${esc(e.last)}</td><td>${st}</td><td>${due}</td></tr>`;
+  }).join('')+'</tbody></table>';
+}
+function showEquip(key){
+  const e=equipList().find(x=>x.key===key);if(!e)return;
+  const days=(a,b)=>Math.round((new Date(b)-new Date(a))/864e5);
+  const ev=[...e.reps.map(r=>({d:r.date_received,t:'R',r})),...e.ppms.map(r=>({d:r.ppm_date,t:'P',r}))].sort((a,b)=>b.d.localeCompare(a.d));
+  const body=ev.map(({d,t,r})=>{
+    if(t==='R'){
+      const det=[r.problem&&`<b>Problem:</b> ${esc(r.problem)}`,r.part_replaced&&`<b>Part replaced:</b> ${esc(r.part_replaced)}`].filter(Boolean).join('<br>')||'-';
+      const out=`<span class="tag ${slug(r.status)}">${esc(r.status)}</span>`+(r.date_dispatched?`<br>Dispatched ${esc(r.date_dispatched)} (${days(r.date_received,r.date_dispatched)} days)`:'')+(r.comments?`<br>${esc(r.comments)}`:'');
+      return `<tr><td>${esc(d)}</td><td><span class="tag k-rep">Repair</span></td><td>${esc(r.facility)}</td><td class="wrap">${det}</td><td class="wrap">${out}</td></tr>`;
+    }
+    const det=[r.quarter&&`<b>${esc(r.quarter)}</b>`,r.work_done&&esc(r.work_done)].filter(Boolean).join('<br>')||'-';
+    const out=(r.next_service_date?`Next servicing ${esc(r.next_service_date)}`:'')+(r.remarks?`<br>${esc(r.remarks)}`:'');
+    return `<tr><td>${esc(d)}</td><td><span class="tag k-ppm">PPM</span></td><td>${esc(r.facility)}</td><td class="wrap">${det}</td><td class="wrap">${out||'-'}</td></tr>`;
+  }).join('');
+  const who=[e.manufacturer,e.model,e.serial_number&&'Serial '+e.serial_number,e.facility,e.facility_type,e.district].filter(Boolean).map(esc).join(', ');
+  const due=e.ppms[0]?(dueTag(e.ppms[0])||'-'):'-';
+  $('imp').innerHTML=`<h2 style="margin:0 0 4px">${esc(e.equipment)}</h2><p style="margin:0 0 14px;color:var(--mute)">${who}</p>
+  <div class="strip" style="margin-bottom:14px"><div><b>${e.reps.length}</b><span>Repairs</span></div><div><b>${e.ppms.length}</b><span>PPM done</span></div><div><b style="font-size:18px">${esc(e.first)}</b><span>First logged</span></div><div><b style="font-size:18px">${esc(e.last)}</b><span>Last activity</span></div><div><b style="font-size:16px">${due}</b><span>Next PPM due</span></div></div>
+  <div class="tw" style="max-height:55vh;overflow:auto"><table><thead><tr><th>Date</th><th>Activity</th><th>Facility</th><th>What was done</th><th>Outcome</th></tr></thead><tbody>${body}</tbody></table></div>
+  <div class="bar" style="margin-top:12px"><button class="btn" onclick="$('imp').close()">Close</button></div>`;
+  $('imp').showModal();
+}
+function showHistory(id){const r=data.service_records.find(x=>x.id===id);if(r)showEquip(pk(r))}
+
 function table(el,t,a,cols){
   const lab=Object.fromEntries(FIELDS[t].map(f=>[f[0],f[1]]));lab.visit='Visit';
   if(!a.length){$(el).innerHTML='<div class="empty">No records match these filters. Use the Add button to create one.</div>';return}
   $(el).innerHTML='<table><thead><tr>'+cols.map(c=>`<th>${lab[c]}</th>`).join('')+'<th></th></tr></thead><tbody>'+a.map(r=>'<tr>'+cols.map(c=>{
     const z=VIS.sz[r.id];
-    const v=c==='status'?`<span class="tag ${slug(r[c])}">${esc(r[c])}</span>`:c==='visit'?(z>1?`<button class="tag Return" onclick="showHistory('${r.id}')">Visit ${VIS.m[r.id]} of ${z}</button>`:''):c==='next_service_date'?dueTag(r):esc(r[c]);
+    const v=c==='status'?`<span class="tag ${slug(r[c])}">${esc(r[c])}</span>`:c==='visit'?(z>1?`<button class="tag Return" onclick="showHistory('${r.id}')">Visit ${VIS.m[r.id]} of ${z}</button>`:''):c==='next_service_date'?dueTag(r):(c==='equipment'&&t!=='trainings')?`<button class="lnk" data-k="${esc(pk(r))}" onclick="showEquip(this.dataset.k)">${esc(r[c])}</button>`:esc(r[c]);
     return `<td class="${['problem','comments','remarks','work_done'].includes(c)?'wrap':''}">${v}</td>`}).join('')+`<td><button class="btn sm" onclick="openForm('${t}','${r.id}')">Edit</button> <button class="btn sm del" onclick="del('${t}','${r.id}')">Delete</button></td></tr>`).join('')+'</tbody></table>';
 }
 function openForm(t,id){
