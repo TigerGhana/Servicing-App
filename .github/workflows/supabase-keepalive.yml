@@ -21,16 +21,27 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           set -uo pipefail
-          if [ -z "${SUPABASE_URL}" ] || [ -z "${SUPABASE_ANON_KEY}" ]; then
-            echo "SUPABASE_URL or SUPABASE_ANON_KEY secret is missing."
+          # Clean up the secrets: remove spaces/newlines, trailing slash and a pasted /rest/v1 suffix
+          URL=$(printf '%s' "${SUPABASE_URL}" | tr -d '[:space:]')
+          KEY=$(printf '%s' "${SUPABASE_ANON_KEY}" | tr -d '[:space:]')
+          URL="${URL%/}"
+          URL="${URL%/rest/v1}"
+          if [ -z "${URL}" ] || [ -z "${KEY}" ]; then
+            echo "A secret is missing or empty. Check the names: SUPABASE_URL and SUPABASE_ANON_KEY."
             exit 1
           fi
-          code=$(curl -s -o /dev/null -w "%{http_code}" --retry 3 --retry-delay 10 \
-            "${SUPABASE_URL%/}/rest/v1/service_records?select=id&limit=1" \
-            -H "apikey: ${SUPABASE_ANON_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}") || code="000"
-          echo "Supabase responded with HTTP ${code}"
-          if [ "${code}" -lt 200 ] || [ "${code}" -ge 300 ]; then
-            echo "Keepalive failed. The project may be paused or the secrets may be wrong."
-            exit 1
-          fi
+          echo "Pinging host: ${URL}"
+          resp=$(mktemp)
+          code=$(curl -sS -o "${resp}" -w "%{http_code}" --max-time 30 --retry 2 --retry-delay 5 \
+            "${URL}/rest/v1/service_records?select=id&limit=1" \
+            -H "apikey: ${KEY}") || code="000"
+          echo "HTTP ${code}"
+          head -c 400 "${resp}"; echo
+          case "${code}" in
+            2??) echo "Keepalive OK."; exit 0 ;;
+            401|403) echo "Hint: the key was rejected. Use the anon / publishable key (not the secret or service_role key)." ;;
+            404) echo "Hint: not found. SUPABASE_URL must be only https://<project-ref>.supabase.co and the service_records table must exist (run the SQL script)." ;;
+            000) echo "Hint: could not reach the server. Check SUPABASE_URL, or the project may be paused." ;;
+            *) echo "Unexpected response." ;;
+          esac
+          exit 1
