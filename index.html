@@ -77,6 +77,15 @@ tbody tr:hover{background:#f6f9fc}
 .hint{background:#fdf0d2;color:#8a5a00;border-radius:10px;padding:9px 12px;font-size:13px}
 .hint:empty{display:none}
 #imp{width:min(840px,94vw)}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.stream{font:inherit;text-align:left;color:#fff;background:#1b4670;border:0;border-radius:22px;padding:20px 24px;cursor:pointer;box-shadow:inset 0 0 0 2px transparent;transition:background .15s}
+.stream:hover{background:#15385e}
+.stream.on{background:var(--navy);box-shadow:inset 0 0 0 2px var(--gold)}
+.stream .nm{font-size:13px;font-weight:500;opacity:.8}
+.stream .big{font-size:54px;margin:4px 0 2px}
+.stream .lbl{margin:0 0 12px;font-size:13.5px;opacity:.85}
+.stream .sub{font-size:12.5px;opacity:.75;margin-top:8px}
+@media(max-width:860px){.trio{grid-template-columns:1fr}.stream .big{font-size:44px}}
 .bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
 .empty{color:var(--mute);padding:28px;text-align:center}
 dialog{border:0;border-radius:20px;background:var(--card);color:var(--ink);width:min(580px,94vw);padding:22px;box-shadow:0 24px 60px rgba(11,46,79,.3)}
@@ -102,7 +111,7 @@ dialog .full{grid-column:1/-1}
 <body>
 <div id="login" class="loginwrap hide">
   <div class="logincard">
-    <h1>CEU Service Logger App</h1>
+    <h1>CEU Service Logger</h1>
     <label>Email<input id="em" type="email" autocomplete="username"></label>
     <label>Password<input id="pw" type="password" autocomplete="current-password"></label>
     <button class="btn gold" onclick="signIn()">Sign in</button>
@@ -120,12 +129,12 @@ dialog .full{grid-column:1/-1}
     <button data-t="dash" class="on"><svg class="i" viewBox="0 0 24 24"><path d="M4 13h6V4H4zM14 20h6V4h-6zM4 20h6v-3H4z"/></svg>Summary</button>
     <button data-t="svc"><svg class="i" viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/></svg>Servicing</button>
     <button data-t="ppm"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>PPM</button>
-    <button data-t="trn"><svg class="i" viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5zM7 12v4c0 1 2.2 2.5 5 2.5s5-1.5 5-2.5v-4"/></svg> User Trainings</button>
+    <button data-t="trn"><svg class="i" viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5zM7 12v4c0 1 2.2 2.5 5 2.5s5-1.5 5-2.5v-4"/></svg>User Trainings</button>
   </nav>
 </aside>
 <main>
   <div class="head">
-    <div><h1 id="ttl">Overview</h1><p id="sub"></p></div>
+    <div><h1 id="ttl">Summary</h1><p id="sub"></p></div>
     <button class="btn" onclick="sb.auth.signOut()">Exit</button>
   </div>
   <div id="err" class="alert hide"></div>
@@ -142,13 +151,14 @@ dialog .full{grid-column:1/-1}
   </div>
 
   <section id="dash">
-    <div class="hero" id="hero"></div>
+    <div class="trio" id="hero"></div>
     <div class="strip" id="strip"></div>
     <div class="charts">
-      <div class="panel"><h2>Equipment by district</h2><canvas id="c_dist"></canvas></div>
-      <div class="panel"><h2>Equipment by facility type</h2><canvas id="c_type"></canvas></div>
-      <div class="panel wide"><h2>Year on year: equipment received each month</h2><canvas id="c_yoy" height="100"></canvas></div>
-      <div class="panel wide"><h2>Yearly totals</h2><div class="tw" id="ytab"></div></div>
+      <div class="panel"><h2 id="h_a"></h2><canvas id="c_dist"></canvas></div>
+      <div class="panel"><h2 id="h_b"></h2><canvas id="c_type"></canvas></div>
+      <div class="panel"><h2 id="h_c"></h2><canvas id="c_third"></canvas></div>
+      <div class="panel wide"><h2 id="h_d"></h2><canvas id="c_yoy" height="100"></canvas></div>
+      <div class="panel wide"><h2>All work, year on year</h2><canvas id="c_all" height="70"></canvas><div class="tw" id="ytab" style="margin-top:14px"></div></div>
     </div>
   </section>
 
@@ -196,7 +206,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const slug=s=>String(s||'').replace(/\s+/g,'-');
 const Y=d=>d?+d.slice(0,4):0;
 const data={service_records:[],trainings:[],ppm_records:[]};
-let charts={},editing=null,tab='dash',VIS={m:{},sz:{}};
+let charts={},editing=null,tab='dash',ov='rep',VIS={m:{},sz:{}};
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const COL=['#0b2e4f','#f2b134','#12a3a0','#ef6a5b','#6b5fd6','#3b82c4','#7fb069','#c2549d','#8c6d46','#2f9e6f','#d96f2b','#5b7083','#b5a000','#9b59b6'];
 Chart.defaults.font.family="'DM Sans',sans-serif";Chart.defaults.color='#64748b';
@@ -262,35 +272,77 @@ function render(){
   VIS=visits();
   LATEST={};data.ppm_records.forEach(r=>{const k=pk(r);if(!LATEST[k]||r.ppm_date>LATEST[k])LATEST[k]=r.ppm_date});
   const sr=rows('service_records'),tr=rows('trainings'),pm=rows('ppm_records');
-  if(tab==='dash'){
-    const N=sr.length,f=F(),cnt=s=>sr.filter(r=>r.status===s).length;
-    const rep=cnt('Repaired')+cnt('Dispatched'),work=cnt('Awaiting repair')+cnt('In repair');
-    const segs=STATUS.map((s,i)=>[s,cnt(s),SC[i]]);
-    $('hero').innerHTML=`<div><div class="big">${N}</div><div class="lbl">equipment received${f.y?' in '+f.y:', all years'}</div></div>
-      <div><div class="seg">${segs.map(([s,n,c])=>n?`<i style="flex:${n};background:${c}"></i>`:'').join('')}</div>
-      <div class="leg">${segs.map(([s,n,c])=>`<span><i style="background:${c}"></i>${n} ${s.toLowerCase()}</span>`).join('')}</div></div>`;
-    const it=[[rep,'Repaired',N?Math.round(rep/N*100)+'% of received':''],[cnt('Dispatched'),'Dispatched',''],[work,'Still in the workshop',''],[sr.filter(r=>VIS.m[r.id]>1).length,'Return visits','came back after an earlier repair'],[pm.length,'PPM visits',''],[tr.length,'Trainings',''],[tr.reduce((a,r)=>a+(+r.trainees||0),0),'Trainees','']];
-    $('strip').innerHTML=it.map(([n,l,s])=>`<div><b>${n}</b><span>${l}</span>${s?`<em>${s}</em>`:''}</div>`).join('');
-    const d=count(sr,'district'),narrow=innerWidth<700;
-    draw('c_dist',{type:'doughnut',data:{labels:Object.keys(d),datasets:[{data:Object.values(d),backgroundColor:Object.keys(d).map((_,i)=>COL[i%COL.length]),borderColor:'#fff',borderWidth:2}]},options:{cutout:'62%',plugins:{legend:{position:narrow?'bottom':'right',labels:{boxWidth:10,usePointStyle:true}}}}});
-    const t=count(sr,'facility_type');
-    draw('c_type',{type:'bar',data:{labels:Object.keys(t),datasets:[{label:'Equipment',data:Object.values(t),backgroundColor:'#12a3a0',borderRadius:6}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{precision:0}}}}});
-    const all=data.service_records.filter(r=>pass('service_records',r,true));
-    const yrs=[...new Set(all.map(r=>Y(r.date_received)))].sort();
-    draw('c_yoy',{type:'line',data:{labels:MON,datasets:yrs.map((y,i)=>({label:y,borderColor:COL[i%COL.length],backgroundColor:COL[i%COL.length],borderWidth:3,pointRadius:3,tension:.3,data:MON.map((_,m)=>all.filter(r=>Y(r.date_received)===y&&+r.date_received.slice(5,7)===m+1).length)}))},options:{scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
-    const by={};all.forEach(r=>{const y=Y(r.date_received);by[y]=(by[y]||0)+1});
-    const trn=data.trainings.filter(r=>pass('trainings',r,true));
-    const ty=[...new Set([...yrs,...trn.map(r=>Y(r.training_date)),...data.ppm_records.filter(r=>pass('ppm_records',r,true)).map(r=>Y(r.ppm_date))])].sort((a,b)=>b-a);
-    let h='<table><thead><tr><th>Year</th><th>Received</th><th>Change</th><th>Repaired</th><th>Dispatched</th><th>PPM visits</th><th>Trainings</th><th>Trainees</th></tr></thead><tbody>';
-    ty.forEach(y=>{const a=all.filter(r=>Y(r.date_received)===y),b=trn.filter(r=>Y(r.training_date)===y),p=by[y-1];
-      const c=p?Math.round((a.length-p)/p*100):null;
-      h+=`<tr><td><b>${y}</b></td><td>${a.length}</td><td class="${c>0?'up':'down'}">${c===null?'-':(c>0?'+':'')+c+'%'}</td><td>${a.filter(r=>['Repaired','Dispatched'].includes(r.status)).length}</td><td>${a.filter(r=>r.status==='Dispatched').length}</td><td>${data.ppm_records.filter(r=>pass('ppm_records',r,true)&&Y(r.ppm_date)===y).length}</td><td>${b.length}</td><td>${b.reduce((s,r)=>s+(+r.trainees||0),0)}</td></tr>`});
-    $('ytab').innerHTML=h+'</tbody></table>';
-  }
+  if(tab==='dash')renderDash(sr,tr,pm);
   if(tab==='svc')table('svc_t','service_records',sr,['date_received','facility','facility_type','district','equipment','manufacturer','model','serial_number','visit','problem','part_replaced','status','date_dispatched','comments']);
   if(tab==='ppm')table('ppm_t','ppm_records',pm,['ppm_date','quarter','facility','facility_type','district','equipment','manufacturer','serial_number','work_done','next_service_date','remarks']);
   if(tab==='trn')table('trn_t','trainings',tr,['training_date','facility','facility_type','district','equipment','trainees','venue','remarks']);
 }
+/* ---------- Overview: repairs, PPM and trainings ---------- */
+const QC=['#6cb4ee','#2ec4b6','#f2b134','#ef6a5b'];
+const sumBy=(a,key,val)=>{const m={};a.forEach(r=>{const k=r[key]||'Not specified';m[k]=(m[k]||0)+(+r[val]||0)});return m};
+const sum=(a,k)=>a.reduce((s,r)=>s+(+r[k]||0),0);
+function setOv(id){ov=id;render()}
+function donut(id,m){
+  draw(id,{type:'doughnut',data:{labels:Object.keys(m),datasets:[{data:Object.values(m),backgroundColor:Object.keys(m).map((_,i)=>COL[i%COL.length]),borderColor:'#fff',borderWidth:2}]},options:{cutout:'62%',plugins:{legend:{position:innerWidth<700?'bottom':'right',labels:{boxWidth:10,usePointStyle:true}}}}});
+}
+function hbar(id,m,label,color){
+  const e=Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  draw(id,{type:'bar',data:{labels:e.map(x=>x[0]),datasets:[{label,data:e.map(x=>x[1]),backgroundColor:color||'#12a3a0',borderRadius:6}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{precision:0}}}}});
+}
+function renderDash(sr,tr,pm){
+  const f=F(),yl=f.y?' in '+f.y:', all years';
+  const cnt=s=>sr.filter(r=>r.status===s).length;
+  const rep=cnt('Repaired')+cnt('Dispatched'),disp=cnt('Dispatched'),work=cnt('Awaiting repair')+cnt('In repair');
+  const trainees=sum(tr,'trainees');
+  const nfac=a=>new Set(a.map(r=>(r.facility||'').trim().toLowerCase()).filter(Boolean)).size;
+  const pmUnique=new Set(pm.map(pk)).size;
+  const pq=r=>r.quarter||quarterOf(r.ppm_date);
+
+  const strm=(id,nm,big,lbl,segs,sub)=>`<button class="stream ${ov===id?'on':''}" onclick="setOv('${id}')"><div class="nm">${nm}</div><div class="big">${big}</div><div class="lbl">${lbl}</div><div class="seg">${segs.map(([n,c])=>n?`<i style="flex:${n};background:${c}"></i>`:'').join('')}</div><div class="sub">${sub}</div></button>`;
+  $('hero').innerHTML=
+    strm('rep','Repairs',sr.length,'equipment received'+yl,STATUS.map((s,i)=>[cnt(s),SC[i]]),`${rep} repaired, ${work} still in the workshop`)+
+    strm('ppm','Preventive maintenance',pm.length,'equipment serviced (PPM)'+yl,QUARTERS.map((q,i)=>[pm.filter(r=>pq(r)===q).length,QC[i]]),`${pmUnique} distinct equipment in ${nfac(pm)} facilities`)+
+    strm('trn','Trainings',trainees,'trainees'+yl,QUARTERS.map((q,i)=>[sum(tr.filter(r=>quarterOf(r.training_date)===q),'trainees'),QC[i]]),`${tr.length} trainings in ${nfac(tr)} facilities`);
+
+  let items,T;
+  if(ov==='rep'){
+    const N=sr.length;
+    items=[[rep,'Repaired',N?Math.round(rep/N*100)+'% of received':''],[disp,'Dispatched',''],[work,'Still in the workshop',''],[cnt('Beyond repair'),'Beyond repair',''],[sr.filter(r=>VIS.m[r.id]>1).length,'Return visits','came back after an earlier repair']];
+    T=['Repairs by district','Repairs by facility type','Facilities with the most repairs','Repairs received each month, by year'];
+    donut('c_dist',count(sr,'district'));hbar('c_type',count(sr,'facility_type'),'Equipment');hbar('c_third',count(sr,'facility'),'Equipment','#f2b134');
+    const al=data.service_records.filter(r=>pass('service_records',r,true)),yrs=[...new Set(al.map(r=>Y(r.date_received)))].sort();
+    draw('c_yoy',{type:'line',data:{labels:MON,datasets:yrs.map((y,i)=>({label:y,borderColor:COL[i%COL.length],backgroundColor:COL[i%COL.length],borderWidth:3,pointRadius:3,tension:.3,data:MON.map((_,m)=>al.filter(r=>Y(r.date_received)===y&&+r.date_received.slice(5,7)===m+1).length)}))},options:{scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+  }else if(ov==='ppm'){
+    const today=new Date().toISOString().slice(0,10),soon=new Date(Date.now()+30*864e5).toISOString().slice(0,10);
+    const lat=pm.filter(r=>r.next_service_date&&r.ppm_date>=LATEST[pk(r)]);
+    items=[[pm.length,'Equipment serviced','PPM records in this period'],[pmUnique,'Distinct equipment',''],[nfac(pm),'Facilities covered',''],[lat.filter(r=>r.next_service_date>=today&&r.next_service_date<=soon).length,'Due within 30 days',''],[lat.filter(r=>r.next_service_date<today).length,'Overdue','']];
+    T=['PPM equipment by district','PPM equipment by facility type','Facilities with the most PPM','PPM equipment per quarter, by year'];
+    donut('c_dist',count(pm,'district'));hbar('c_type',count(pm,'facility_type'),'Equipment');hbar('c_third',count(pm,'facility'),'Equipment','#f2b134');
+    const al=data.ppm_records.filter(r=>pass('ppm_records',r,true)),yrs=[...new Set(al.map(r=>Y(r.ppm_date)))].sort();
+    draw('c_yoy',{type:'bar',data:{labels:QUARTERS,datasets:yrs.map((y,i)=>({label:y,backgroundColor:COL[i%COL.length],borderRadius:6,data:QUARTERS.map(q=>al.filter(r=>Y(r.ppm_date)===y&&pq(r)===q).length)}))},options:{scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+  }else{
+    items=[[tr.length,'Trainings held',''],[trainees,'Trainees',''],[nfac(tr),'Facilities reached',''],[new Set(tr.map(r=>(r.equipment||'').trim().toLowerCase()).filter(Boolean)).size,'Equipment types trained on',''],[tr.length?Math.round(trainees/tr.length):0,'Average trainees per training','']];
+    T=['Trainees by district','Trainees by facility type','Trainees by equipment trained on','Trainees each month, by year'];
+    donut('c_dist',sumBy(tr,'district','trainees'));hbar('c_type',sumBy(tr,'facility_type','trainees'),'Trainees');hbar('c_third',sumBy(tr,'equipment','trainees'),'Trainees','#f2b134');
+    const al=data.trainings.filter(r=>pass('trainings',r,true)),yrs=[...new Set(al.map(r=>Y(r.training_date)))].sort();
+    draw('c_yoy',{type:'line',data:{labels:MON,datasets:yrs.map((y,i)=>({label:y,borderColor:COL[i%COL.length],backgroundColor:COL[i%COL.length],borderWidth:3,pointRadius:3,tension:.3,data:MON.map((_,m)=>sum(al.filter(r=>Y(r.training_date)===y&&+r.training_date.slice(5,7)===m+1),'trainees'))}))},options:{scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+  }
+  $('strip').innerHTML=items.map(([n,l,s])=>`<div><b>${n}</b><span>${l}</span>${s?`<em>${s}</em>`:''}</div>`).join('');
+  ['h_a','h_b','h_c','h_d'].forEach((id,i)=>$(id).textContent=T[i]);
+
+  // all work, year on year (ignores the year filter so years can be compared)
+  const aS=data.service_records.filter(r=>pass('service_records',r,true)),aP=data.ppm_records.filter(r=>pass('ppm_records',r,true)),aT=data.trainings.filter(r=>pass('trainings',r,true));
+  const ys=[...new Set([...aS.map(r=>Y(r.date_received)),...aP.map(r=>Y(r.ppm_date)),...aT.map(r=>Y(r.training_date))])].sort();
+  const cS=y=>aS.filter(r=>Y(r.date_received)===y),cP=y=>aP.filter(r=>Y(r.ppm_date)===y),cT=y=>aT.filter(r=>Y(r.training_date)===y);
+  draw('c_all',{type:'bar',data:{labels:ys,datasets:[{label:'Repairs received',backgroundColor:'#0b2e4f',borderRadius:6,data:ys.map(y=>cS(y).length)},{label:'PPM equipment serviced',backgroundColor:'#12a3a0',borderRadius:6,data:ys.map(y=>cP(y).length)},{label:'Trainings held',backgroundColor:'#f2b134',borderRadius:6,data:ys.map(y=>cT(y).length)}]},options:{scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+  let h='<table><thead><tr><th>Year</th><th>Repairs received</th><th>Change</th><th>Repaired</th><th>Dispatched</th><th>PPM equipment</th><th>Trainings</th><th>Trainees</th></tr></thead><tbody>';
+  [...ys].reverse().forEach(y=>{
+    const a=cS(y),p=cS(y-1).length,c=p?Math.round((a.length-p)/p*100):null;
+    h+=`<tr><td><b>${y}</b></td><td>${a.length}</td><td class="${c>0?'up':'down'}">${c===null?'-':(c>0?'+':'')+c+'%'}</td><td>${a.filter(r=>['Repaired','Dispatched'].includes(r.status)).length}</td><td>${a.filter(r=>r.status==='Dispatched').length}</td><td>${cP(y).length}</td><td>${cT(y).length}</td><td>${sum(cT(y),'trainees')}</td></tr>`;
+  });
+  $('ytab').innerHTML=h+'</tbody></table>';
+}
+
 function table(el,t,a,cols){
   const lab=Object.fromEntries(FIELDS[t].map(f=>[f[0],f[1]]));lab.visit='Visit';
   if(!a.length){$(el).innerHTML='<div class="empty">No records match these filters. Use the Add button to create one.</div>';return}
